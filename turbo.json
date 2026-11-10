@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/turbo/schema.json",
+  "globalDependencies": ["tsconfig.base.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "outputs": ["worker-configuration.d.ts"]
+    },
+    "openapi": {
+      "outputs": ["openapi.json"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
