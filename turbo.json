@@ -15,9 +15,18 @@
     },
     "codegen": {
       "dependsOn": ["^openapi"],
-      "outputs": ["src/lib/api/generated/**"]
+      "outputs": ["src/lib/api/generated/**", "src/lib/apiMocks/generated/**"]
+    },
+    "build-storybook": {
+      "dependsOn": ["codegen"],
+      "outputs": ["storybook-static/**"]
     },
     "dev": {
+      "dependsOn": ["codegen"],
+      "cache": false,
+      "persistent": true
+    },
+    "storybook": {
       "dependsOn": ["codegen"],
       "cache": false,
       "persistent": true

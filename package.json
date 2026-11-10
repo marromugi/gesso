@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "turbo run dev",
+    "storybook": "turbo run storybook",
     "build": "turbo run build",
+    "build-storybook": "turbo run build-storybook",
     "typecheck": "turbo run typecheck",
     "lint": "oxlint",
     "format": "oxfmt",

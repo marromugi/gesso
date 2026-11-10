@@ -1,7 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn", "oxc", "import", "react", "jsx-a11y"],
-  "ignorePatterns": ["apps/web/src/lib/api/generated/**"],
+  "ignorePatterns": [
+    "apps/web/src/lib/api/generated/**",
+    "apps/web/src/lib/apiMocks/generated/**",
+    "apps/web/.storybook/public/mockServiceWorker.js"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error"
