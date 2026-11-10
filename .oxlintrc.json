@@ -4,7 +4,8 @@
   "ignorePatterns": [
     "apps/web/src/lib/api/generated/**",
     "apps/web/src/lib/apiMocks/generated/**",
-    "apps/web/.storybook/public/mockServiceWorker.js"
+    "apps/web/.storybook/public/mockServiceWorker.js",
+    "apps/web/src/routeTree.gen.ts"
   ],
   "categories": {
     "correctness": "error",
