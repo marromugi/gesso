@@ -3,16 +3,22 @@
   "globalDependencies": ["tsconfig.base.json"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "codegen"],
       "outputs": ["dist/**"]
     },
     "typecheck": {
-      "outputs": ["worker-configuration.d.ts"]
+      "dependsOn": ["codegen"],
+      "outputs": []
     },
     "openapi": {
       "outputs": ["openapi.json"]
     },
+    "codegen": {
+      "dependsOn": ["^openapi"],
+      "outputs": ["src/lib/api/generated/**"]
+    },
     "dev": {
+      "dependsOn": ["codegen"],
       "cache": false,
       "persistent": true
     }
