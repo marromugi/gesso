@@ -6,6 +6,7 @@ const config: StorybookConfig = {
   addons: ["msw-storybook-addon"],
   staticDirs: ["./public"],
   env: (env) => ({ ...env, VITE_API_BASE_URL: "/api" }),
+  core: { disableTelemetry: true },
 };
 
 export default config;

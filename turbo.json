@@ -15,7 +15,11 @@
     },
     "codegen": {
       "dependsOn": ["^openapi"],
-      "outputs": ["src/lib/api/generated/**", "src/lib/apiMocks/generated/**"]
+      "outputs": [
+        "src/lib/api/generated/**",
+        "src/lib/apiMocks/generated/**",
+        ".storybook/public/mockServiceWorker.js"
+      ]
     },
     "build-storybook": {
       "dependsOn": ["codegen"],

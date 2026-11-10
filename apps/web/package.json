@@ -6,8 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc -p . && tsc -p tsconfig.node.json",
-    "codegen": "orval",
-    "storybook": "storybook dev --port 6006 --no-open",
+    "codegen": "orval && msw init",
+    "storybook": "storybook dev --port 6006 --ci --no-version-updates",
     "build-storybook": "storybook build"
   },
   "dependencies": {
