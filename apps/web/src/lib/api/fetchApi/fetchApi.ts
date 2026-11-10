@@ -20,6 +20,12 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The error type orval gives the generated query hooks. `fetchApi` reports every failure as an
+ * `ApiError`; anything else thrown is a bug and goes to an error boundary (see `createQueryClient`).
+ */
+export type ErrorType<_ResponseBody> = ApiError;
+
 /** Statuses a proxy or gateway sends when the server behind it gave no answer. */
 const gatewayFailureStatuses: ReadonlySet<number> = new Set([502, 504]);
 

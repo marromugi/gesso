@@ -18,7 +18,8 @@
       "outputs": [
         "src/lib/api/generated/**",
         "src/lib/apiMocks/generated/**",
-        ".storybook/public/mockServiceWorker.js"
+        ".storybook/public/mockServiceWorker.js",
+        "src/routeTree.gen.ts"
       ]
     },
     "build-storybook": {

@@ -37,4 +37,5 @@ export const getGetHealthMockHandler = (overrideResponse?: Health | ((info: Para
   }, options)
 }
 export const getGessoAPIMock = () => [
-  getGetHealthMockHandler()]
+  getGetHealthMockHandler()
+]
