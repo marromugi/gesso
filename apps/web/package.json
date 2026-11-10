@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "WRANGLER_SEND_METRICS=false wrangler types",
     "dev": "vite",
-    "build": "vite build",
-    "typecheck": "tsc -p . && tsc -p tsconfig.node.json",
+    "build": "vite build && WRANGLER_SEND_METRICS=false wrangler deploy --dry-run",
+    "deploy": "WRANGLER_SEND_METRICS=false wrangler deploy",
+    "typecheck": "WRANGLER_SEND_METRICS=false wrangler types && tsc -p . && tsc -p tsconfig.node.json && tsc -p worker",
     "codegen": "orval && msw init && tsr generate",
     "storybook": "storybook dev --port 6006 --ci --no-version-updates",
     "build-storybook": "storybook build"
@@ -31,7 +33,8 @@
     "orval": "^8.47.0",
     "storybook": "^10.6.7",
     "typescript": "^7.0.2",
-    "vite": "^8.3.7"
+    "vite": "^8.3.7",
+    "wrangler": "^4.160.0"
   },
   "msw": {
     "workerDirectory": [

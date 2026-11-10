@@ -26,6 +26,11 @@
       "dependsOn": ["codegen"],
       "outputs": ["storybook-static/**"]
     },
+    "deploy": {
+      "dependsOn": ["build", "^deploy"],
+      "passThroughEnv": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+      "cache": false
+    },
     "dev": {
       "dependsOn": ["codegen"],
       "cache": false,

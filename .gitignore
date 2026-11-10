@@ -12,4 +12,4 @@ storybook-static/
 *.log
 .DS_Store
 .claude/worktrees/
-apps/api/worker-configuration.d.ts
+apps/*/worker-configuration.d.ts

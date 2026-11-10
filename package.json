@@ -9,6 +9,7 @@
     "build": "TURBO_TELEMETRY_DISABLED=1 turbo run build",
     "build-storybook": "TURBO_TELEMETRY_DISABLED=1 turbo run build-storybook",
     "typecheck": "TURBO_TELEMETRY_DISABLED=1 turbo run typecheck",
+    "deploy": "TURBO_TELEMETRY_DISABLED=1 turbo run deploy",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check"
