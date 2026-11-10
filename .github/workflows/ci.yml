@@ -24,13 +24,13 @@ jobs:
         with:
           node-version-file: .node-version
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run codegen
+      - run: pnpm codegen
       - name: Generated files match the committed ones
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
             git diff
-            echo "::error::Generated files are out of date. Run 'pnpm turbo run codegen' and commit the result."
+            echo "::error::Generated files are out of date. Run 'pnpm codegen' and commit the result."
             exit 1
           fi
       - run: pnpm lint

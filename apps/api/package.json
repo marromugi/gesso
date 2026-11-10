@@ -6,10 +6,10 @@
     "./openapi.json": "./openapi.json"
   },
   "scripts": {
-    "postinstall": "wrangler types",
-    "dev": "wrangler dev",
-    "build": "wrangler deploy --dry-run --outdir dist",
-    "typecheck": "wrangler types && tsc -p . && tsc -p scripts",
+    "postinstall": "WRANGLER_SEND_METRICS=false wrangler types",
+    "dev": "WRANGLER_SEND_METRICS=false wrangler dev",
+    "build": "WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir dist",
+    "typecheck": "WRANGLER_SEND_METRICS=false wrangler types && tsc -p . && tsc -p scripts",
     "openapi": "node scripts/write-openapi.ts"
   },
   "dependencies": {

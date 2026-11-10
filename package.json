@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
-    "storybook": "turbo run storybook",
-    "build": "turbo run build",
-    "build-storybook": "turbo run build-storybook",
-    "typecheck": "turbo run typecheck",
+    "codegen": "TURBO_TELEMETRY_DISABLED=1 turbo run codegen",
+    "dev": "TURBO_TELEMETRY_DISABLED=1 turbo run dev",
+    "storybook": "TURBO_TELEMETRY_DISABLED=1 turbo run storybook",
+    "build": "TURBO_TELEMETRY_DISABLED=1 turbo run build",
+    "build-storybook": "TURBO_TELEMETRY_DISABLED=1 turbo run build-storybook",
+    "typecheck": "TURBO_TELEMETRY_DISABLED=1 turbo run typecheck",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check"
