@@ -1,4 +1,9 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["apps/api/openapi.json", "apps/web/src/lib/api/generated/**"]
+  "ignorePatterns": [
+    "apps/api/openapi.json",
+    "apps/web/src/lib/api/generated/**",
+    "apps/web/src/lib/apiMocks/generated/**",
+    "apps/web/.storybook/public/mockServiceWorker.js"
+  ]
 }

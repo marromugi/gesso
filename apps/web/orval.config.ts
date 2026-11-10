@@ -10,6 +10,7 @@ export default defineConfig({
         mutator: { path: "./src/lib/api/fetchApi/fetchApi.ts", name: "fetchApi" },
         fetch: { includeHttpResponseReturnType: false },
       },
+      mock: { path: "./src/lib/apiMocks/generated", generators: [{ type: "msw" }] },
     },
   },
 });
