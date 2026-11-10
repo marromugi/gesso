@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-10",
   "compatibility_flags": ["nodejs_compat"],
+  // Not every command reads this (wrangler 4.160 ignores it in `types` and autoconfig).
+  // Run wrangler through the package.json scripts, which also set WRANGLER_SEND_METRICS=false.
   "send_metrics": false,
   "dev": {
     "port": 8787,
