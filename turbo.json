@@ -8,7 +8,7 @@
     },
     "typecheck": {
       "dependsOn": ["codegen"],
-      "outputs": ["worker-configuration.d.ts"]
+      "outputs": []
     },
     "openapi": {
       "outputs": ["openapi.json"]
