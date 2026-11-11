@@ -82,3 +82,17 @@ test("draws a hundred matches at most, and counts the rest", async () => {
   expect(screen.getAllByRole("option")).toHaveLength(100);
   expect(screen.getByText("ほか 150 件。入力して絞り込めます。")).toBeTruthy();
 });
+
+test("leaving the control closes the list and drops the typed text", async () => {
+  render(<Chosen options={fonts} changes={[]} />);
+  const input = screen.getByLabelText("フォント");
+  await act(async () => {
+    fireEvent.change(input, { target: { value: "lo" } });
+  });
+  expect(screen.getAllByRole("option").map((row) => row.textContent)).toEqual(["Lora"]);
+  await act(async () => {
+    fireEvent.blur(input);
+  });
+  expect(screen.queryByRole("option")).toBeNull();
+  expect(input).toHaveProperty("value", "");
+});

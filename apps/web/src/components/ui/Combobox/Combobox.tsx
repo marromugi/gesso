@@ -21,7 +21,7 @@ const MAX_ROWS = 100;
  * One choice out of `options`, found by typing part of its name. The list
  * under the control narrows as the text changes; the arrow keys move through
  * it, Enter chooses, and Escape closes it. Only an option can be the value:
- * text typed but not chosen is dropped when the control is left, and
+ * text typed but not chosen is dropped, and the list closes, when the control is left, and
  * clearing the text clears the choice.
  */
 function ComboboxBody({
@@ -105,7 +105,11 @@ function ComboboxBody({
                 pick(option);
               }
             },
-            onBlur: () => setTyped(null),
+            // Leaving the control, by Tab or otherwise, drops the typed text and closes the list.
+            onBlur: () => {
+              setTyped(null);
+              panel.close();
+            },
           })}
         />
         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center transition duration-160 ease-out group-data-open/combobox:rotate-180">
