@@ -63,6 +63,106 @@
           "email",
           "image"
         ]
+      },
+      "PrototypeList": {
+        "type": "object",
+        "properties": {
+          "prototypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Prototype"
+            }
+          }
+        },
+        "required": [
+          "prototypes"
+        ]
+      },
+      "Prototype": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "mechanic",
+              "level"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "building",
+              "testing",
+              "adopted",
+              "dropped"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "question",
+          "kind",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "unauthorized"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "NewPrototype": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "mechanic",
+              "level"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "question",
+          "kind"
+        ]
       }
     },
     "parameters": {}
@@ -95,6 +195,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes": {
+      "get": {
+        "operationId": "listPrototypes",
+        "responses": {
+          "200": {
+            "description": "The signed-in user's prototypes, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrototypeList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPrototype",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPrototype"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The prototype, created as being built.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prototype"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not a valid new prototype."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
                 }
               }
             }

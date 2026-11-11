@@ -5,16 +5,20 @@
  * OpenAPI spec version: 0.0.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -42,6 +46,71 @@ export interface User {
 
 export interface Me {
   user: User | null;
+}
+
+export type PrototypeKind = typeof PrototypeKind[keyof typeof PrototypeKind];
+
+
+export const PrototypeKind = {
+  mechanic: 'mechanic',
+  level: 'level',
+} as const;
+
+export type PrototypeStatus = typeof PrototypeStatus[keyof typeof PrototypeStatus];
+
+
+export const PrototypeStatus = {
+  building: 'building',
+  testing: 'testing',
+  adopted: 'adopted',
+  dropped: 'dropped',
+} as const;
+
+export interface Prototype {
+  id: string;
+  title: string;
+  question: string;
+  kind: PrototypeKind;
+  status: PrototypeStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PrototypeList {
+  prototypes: Prototype[];
+}
+
+export type UnauthorizedError = typeof UnauthorizedError[keyof typeof UnauthorizedError];
+
+
+export const UnauthorizedError = {
+  unauthorized: 'unauthorized',
+} as const;
+
+export interface Unauthorized {
+  error: UnauthorizedError;
+}
+
+export type NewPrototypeKind = typeof NewPrototypeKind[keyof typeof NewPrototypeKind];
+
+
+export const NewPrototypeKind = {
+  mechanic: 'mechanic',
+  level: 'level',
+} as const;
+
+export interface NewPrototype {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  question: string;
+  kind: NewPrototypeKind;
 }
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -244,3 +313,185 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+
+export const getListPrototypesUrl = () => {
+
+
+
+
+  return `/prototypes`
+}
+
+export const listPrototypes = async ( options?: Parameters<typeof fetchApi>[1]): Promise<PrototypeList> => {
+
+  return fetchApi<PrototypeList>(getListPrototypesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPrototypesQueryKey = () => {
+    return [
+    `/prototypes`
+    ] as const;
+    }
+
+
+export const getListPrototypesQueryOptions = <TData = Awaited<ReturnType<typeof listPrototypes>>, TError = ErrorType<Unauthorized>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypes>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPrototypesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPrototypes>>> = ({ signal }) => listPrototypes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPrototypes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPrototypesQueryResult = NonNullable<Awaited<ReturnType<typeof listPrototypes>>>
+export type ListPrototypesQueryError = ErrorType<Unauthorized>
+
+
+export function useListPrototypes<TData = Awaited<ReturnType<typeof listPrototypes>>, TError = ErrorType<Unauthorized>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPrototypes>>,
+          TError,
+          Awaited<ReturnType<typeof listPrototypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPrototypes<TData = Awaited<ReturnType<typeof listPrototypes>>, TError = ErrorType<Unauthorized>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPrototypes>>,
+          TError,
+          Awaited<ReturnType<typeof listPrototypes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPrototypes<TData = Awaited<ReturnType<typeof listPrototypes>>, TError = ErrorType<Unauthorized>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypes>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListPrototypes<TData = Awaited<ReturnType<typeof listPrototypes>>, TError = ErrorType<Unauthorized>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypes>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListPrototypesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePrototypeUrl = () => {
+
+
+
+
+  return `/prototypes`
+}
+
+export const createPrototype = async (newPrototype: NewPrototype, options?: Parameters<typeof fetchApi>[1]): Promise<Prototype> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return fetchApi<Prototype>(getCreatePrototypeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(newPrototype)
+  }
+);}
+
+
+
+
+
+export const getCreatePrototypeMutationKey = () => ['createPrototype'] as const;
+
+export const getCreatePrototypeMutationOptions = <TError = ErrorType<void | Unauthorized>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPrototype>>, TError,CreatePrototypeMutationVariables, TContext>, request?: SecondParameter<typeof fetchApi>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPrototype>>, TError,CreatePrototypeMutationVariables, TContext> => {
+
+const mutationKey = getCreatePrototypeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPrototype>>, CreatePrototypeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPrototype(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePrototypeMutationResult = NonNullable<Awaited<ReturnType<typeof createPrototype>>>
+    export type CreatePrototypeMutationBody = NewPrototype
+    export type CreatePrototypeMutationError = ErrorType<void | Unauthorized>
+    export type CreatePrototypeMutationVariables = {data: NewPrototype}
+
+    export const useCreatePrototype = <TError = ErrorType<void | Unauthorized>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPrototype>>, TError,CreatePrototypeMutationVariables, TContext>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createPrototype>>,
+        TError,
+        CreatePrototypeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreatePrototypeMutationOptions(options), queryClient);
+    }

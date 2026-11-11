@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { authRoutePrefix, getAuth, toPublicAuthRequest } from "./auth/index.ts";
+import { authRoutePrefix, getAuth, readSessionUser, toPublicAuthRequest } from "./auth/index.ts";
+import { prototypeRoutes } from "./prototypes/index.ts";
 
 const Health = z.object({ status: z.literal("ok") }).openapi("Health");
 
@@ -40,17 +41,8 @@ const getMe = createRoute({
 
 export const app = new OpenAPIHono<{ Bindings: Env }>()
   .openapi(getHealth, (c) => c.json({ status: "ok" } as const, 200))
-  .openapi(getMe, async (c) => {
-    const { headers, response: session } = await getAuth(c.env).api.getSession({
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    // Better Auth extends the session or clears a bad cookie through these.
-    for (const cookie of headers.getSetCookie()) c.header("set-cookie", cookie, { append: true });
-    if (!session) return c.json({ user: null }, 200);
-    const { id, name, email, image } = session.user;
-    return c.json({ user: { id, name, email, image: image ?? null } }, 200);
-  });
+  .openapi(getMe, async (c) => c.json({ user: await readSessionUser(c) }, 200))
+  .route("/prototypes", prototypeRoutes);
 
 app.post(`${authRoutePrefix}/sign-in/*`, async (c, next) => {
   // Each sign-in that is started writes its OAuth state to D1, with or without a session.

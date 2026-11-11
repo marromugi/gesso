@@ -1,4 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ApiStatus } from "@/components/system/ApiStatus";
+import { PrototypeList } from "@/components/prototype/PrototypeList";
 
-export const Route = createFileRoute("/")({ component: ApiStatus });
+export const Route = createFileRoute("/")({ component: PrototypeList });

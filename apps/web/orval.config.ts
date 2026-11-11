@@ -14,4 +14,11 @@ export default defineConfig({
       mock: { path: "./src/lib/apiMocks/generated", generators: [{ type: "msw" }] },
     },
   },
+  gessoSchemas: {
+    input: "./node_modules/@gesso/api/openapi.json",
+    output: {
+      target: "./src/lib/api/generated/gesso.valibot.ts",
+      client: "valibot",
+    },
+  },
 });

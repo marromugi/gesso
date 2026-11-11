@@ -20,5 +20,7 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     include: ["src/**/*.test.{ts,tsx}"],
+    // Tests stand in for the API with a fake fetch; this only has to be a valid base.
+    env: { VITE_API_BASE_URL: "http://localhost/api" },
   },
 });

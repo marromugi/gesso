@@ -1,12 +1,5 @@
 import { type UseQueryResult, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  type ApiError,
-  type ApiFailure,
-  type Me,
-  type User,
-  getGetMeQueryKey,
-  useGetMe,
-} from "@/lib/api";
+import { type ApiError, type ApiFailure, type Me, type User, useGetMe } from "@/lib/api";
 import { signOut, startGitHubSignIn } from "@/lib/auth";
 
 export type Account =
@@ -33,7 +26,8 @@ export function useAccountMenu(): AccountMenu {
   });
   const signOutMutation = useMutation<void, ApiError>({
     mutationFn: signOut,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() }),
+    // Everything fetched belonged to the session that ended, so all of it is dropped and fetched again.
+    onSuccess: () => queryClient.resetQueries(),
   });
 
   return {
