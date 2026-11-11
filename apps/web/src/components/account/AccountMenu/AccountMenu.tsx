@@ -2,15 +2,7 @@ import { Button } from "@/components/ui/Button";
 import type { ApiFailure } from "@/lib/api";
 import { type Account, useAccountMenu } from "./useAccountMenu";
 
-/** Better Auth's code for a sign-in the API refused: the GitHub user is not allowed. */
-const notAllowedCode = "unable_to_get_user_info";
-
-export type AccountMenuProps = {
-  /** Better Auth's error code when the last sign-in failed and came back to this page. */
-  signInError?: string;
-};
-
-export function AccountMenu({ signInError }: AccountMenuProps) {
+export function AccountMenu() {
   const { account, signIn, signOut } = useAccountMenu();
 
   if (account.state === "signedIn") {
@@ -35,19 +27,12 @@ export function AccountMenu({ signInError }: AccountMenuProps) {
         </Button>
         {signIn.failure ? (
           <output>サインインを始められませんでした（{failureText(signIn.failure)}）</output>
-        ) : signInError === undefined ? null : (
-          <output role="alert">{signInErrorText(signInError)}</output>
-        )}
+        ) : null}
       </div>
     );
   }
 
   return <output>{statusText(account)}</output>;
-}
-
-function signInErrorText(code: string): string {
-  if (code === notAllowedCode) return "この GitHub アカウントではサインインできません";
-  return "サインインできませんでした";
 }
 
 function statusText(account: Extract<Account, { state: "checking" | "failed" }>): string {

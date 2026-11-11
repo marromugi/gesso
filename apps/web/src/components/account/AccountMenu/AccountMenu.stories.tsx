@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, delay, http } from "msw";
-import { expect, screen } from "storybook/test";
 import { getGetMeUrl } from "@/lib/api";
 import { getGetMeMockHandler } from "@/lib/apiMocks";
 import { AccountMenu } from "./AccountMenu.tsx";
@@ -37,20 +36,6 @@ export const SignInFails: Story = {
       getGetMeMockHandler({ user: null }),
       http.post(signInPath, () => new HttpResponse(null, { status: 500 })),
     );
-  },
-};
-
-/** Came back from GitHub refused: the GitHub user is not on the API's allowlist. */
-export const SignInRefused: Story = {
-  args: { signInError: "unable_to_get_user_info" },
-  beforeEach({ msw }) {
-    msw.use(getGetMeMockHandler({ user: null }));
-  },
-  async play() {
-    await expect(
-      await screen.findByText("この GitHub アカウントではサインインできません"),
-    ).toBeVisible();
-    await expect(screen.getByRole("button", { name: "GitHub でサインイン" })).toBeEnabled();
   },
 };
 
