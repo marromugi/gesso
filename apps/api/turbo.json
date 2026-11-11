@@ -4,6 +4,9 @@
   "tasks": {
     "typecheck": {
       "outputs": ["worker-configuration.d.ts"]
+    },
+    "codegen": {
+      "outputs": ["migrations/**"]
     }
   }
 }

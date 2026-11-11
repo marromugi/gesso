@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { type SignedInVariables, requireUser } from "../auth/index.ts";
+import { getDb } from "../db/index.ts";
 import { createPrototype, listPrototypes } from "./prototypeStore.ts";
 
 /** The longest name a prototype takes, in characters. */
@@ -62,12 +63,12 @@ const createPrototypeRoute = createRoute({
 /** Prototypes of the signed-in user, mounted at `/prototypes`. */
 export const prototypeRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedInVariables }>()
   .openapi(listPrototypesRoute, async (c) => {
-    const prototypes = await listPrototypes(c.env.DB, c.var.user.id);
+    const prototypes = await listPrototypes(getDb(c.env.DB), c.var.user.id);
     return c.json({ prototypes }, 200);
   })
   .openapi(createPrototypeRoute, async (c) => {
     const prototype = await createPrototype(
-      c.env.DB,
+      getDb(c.env.DB),
       c.var.user.id,
       c.req.valid("json"),
       new Date(),

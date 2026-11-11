@@ -4,6 +4,9 @@
  * Applies every migration to an in-memory SQLite database, then asks Better Auth what is missing.
  * - `node scripts/auth-schema.ts check`: fails when something is missing.
  * - `node scripts/auth-schema.ts write <name>`: writes the missing SQL as the next migration.
+ *
+ * Its files share `migrations/` with drizzle-kit's and take the same timestamp prefix
+ * (`drizzle.config.ts`), so wrangler applies both in the order they were made.
  */
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -49,13 +52,16 @@ if (command === "check") {
   if (!missing) {
     console.log("migrations/ already has everything Better Auth needs.");
   } else {
-    const lastNumber = Math.max(0, ...migrationFiles.map((file) => Number.parseInt(file, 10)));
-    const number = String(lastNumber + 1).padStart(4, "0");
-    const path = resolve(migrationsDir, `${number}_${name}.sql`);
+    const path = resolve(migrationsDir, `${timestampPrefix(new Date())}_${name}.sql`);
     writeFileSync(path, `${(await compileMigrations()).trim()}\n`);
     console.log(`Wrote ${path}`);
   }
 } else {
   console.error("Usage: node scripts/auth-schema.ts check | write <name>");
   process.exit(2);
+}
+
+/** `YYYYMMDDHHmmss` in UTC, as drizzle-kit's `prefix: "timestamp"` names its migrations. */
+function timestampPrefix(at: Date): string {
+  return at.toISOString().replace(/\D/g, "").slice(0, 14);
 }
