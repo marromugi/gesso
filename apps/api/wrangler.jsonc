@@ -33,6 +33,9 @@
     // Better Auth's public URL: the web Worker's origin plus `/api/auth`. Local dev overrides it in
     // .dev.vars (see .dev.vars.example).
     "AUTH_BASE_URL": "https://gesso-web.marrromugi-dev.workers.dev/api/auth",
+    // GitHub's numeric user IDs allowed to sign in, comma-separated (101984097 is marromugi).
+    // Anyone else is refused before a user is made.
+    "ALLOWED_GITHUB_USER_IDS": "101984097",
   },
   // Set with `wrangler secret put` for production and in .dev.vars locally.
   "secrets": {

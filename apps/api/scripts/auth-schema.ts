@@ -20,6 +20,7 @@ const placeholderEnv = {
   BETTER_AUTH_SECRET: "placeholder-secret-for-schema-generation-only",
   GITHUB_CLIENT_ID: "placeholder",
   GITHUB_CLIENT_SECRET: "placeholder",
+  ALLOWED_GITHUB_USER_IDS: "",
 };
 
 const database = migratedDatabase();
