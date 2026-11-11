@@ -7,6 +7,9 @@
   // Not every command reads this (wrangler 4.160 ignores it in `types` and autoconfig).
   // Run wrangler through the package.json scripts, which also set WRANGLER_SEND_METRICS=false.
   "send_metrics": false,
+  // No public URL: the web Worker (apps/web/wrangler.jsonc) reaches it through a service binding.
+  "workers_dev": false,
+  "preview_urls": false,
   "dev": {
     "port": 8787,
   },
