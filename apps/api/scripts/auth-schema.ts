@@ -8,13 +8,11 @@
  * Its files share `migrations/` with drizzle-kit's and take the same timestamp prefix
  * (`drizzle.config.ts`), so wrangler applies both in the order they were made.
  */
-import { readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { getMigrations } from "better-auth/db/migration";
 import { authOptions } from "../src/auth/authOptions.ts";
-
-const migrationsDir = resolve(import.meta.dirname, "../migrations");
+import { migratedDatabase, migrationsDir } from "./migratedDatabase.ts";
 
 /** Stand-in values: the schema does not depend on them. */
 const placeholderEnv = {
@@ -24,15 +22,7 @@ const placeholderEnv = {
   GITHUB_CLIENT_SECRET: "placeholder",
 };
 
-const migrationFiles = readdirSync(migrationsDir, { withFileTypes: true })
-  .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
-  .map((entry) => entry.name)
-  .toSorted();
-
-const database = new DatabaseSync(":memory:");
-for (const file of migrationFiles) {
-  database.exec(readFileSync(resolve(migrationsDir, file), "utf8"));
-}
+const database = migratedDatabase();
 
 const { toBeCreated, toBeAdded, compileMigrations } = await getMigrations({
   ...authOptions(placeholderEnv),
