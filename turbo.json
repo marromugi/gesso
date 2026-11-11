@@ -10,6 +10,10 @@
       "dependsOn": ["codegen"],
       "outputs": []
     },
+    "test": {
+      "dependsOn": ["codegen"],
+      "outputs": []
+    },
     "openapi": {
       "outputs": ["openapi.json"]
     },

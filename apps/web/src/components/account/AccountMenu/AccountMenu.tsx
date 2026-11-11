@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import type { ApiFailure } from "@/lib/api";
 import { type Account, useAccountMenu } from "./useAccountMenu";
 
@@ -6,11 +7,11 @@ export function AccountMenu() {
 
   if (account.state === "signedIn") {
     return (
-      <div>
+      <div className="flex items-center gap-3">
         <span>{account.user.name}</span>
-        <button type="button" onClick={signOut.run} disabled={signOut.pending}>
+        <Button type="button" tone="neutral" onClick={signOut.run} disabled={signOut.pending}>
           サインアウト
-        </button>
+        </Button>
         {signOut.failure ? (
           <output>サインアウトできませんでした（{failureText(signOut.failure)}）</output>
         ) : null}
@@ -20,10 +21,10 @@ export function AccountMenu() {
 
   if (account.state === "signedOut") {
     return (
-      <div>
-        <button type="button" onClick={signIn.run} disabled={signIn.pending}>
+      <div className="flex items-center gap-3">
+        <Button type="button" onClick={signIn.run} disabled={signIn.pending}>
           GitHub でサインイン
-        </button>
+        </Button>
         {signIn.failure ? (
           <output>サインインを始められませんでした（{failureText(signIn.failure)}）</output>
         ) : null}
