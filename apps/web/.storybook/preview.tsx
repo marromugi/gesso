@@ -2,6 +2,7 @@ import type { Preview } from "@storybook/react-vite";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { createQueryClient } from "@/lib/api";
+import "../src/styles.css";
 
 /** Gives each story its own QueryClient, as `main.tsx` gives one to the app. */
 function StoryQueryClient({ children }: { children: ReactNode }) {

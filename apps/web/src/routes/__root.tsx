@@ -6,11 +6,11 @@ export const Route = createRootRoute({ component: RootLayout });
 function RootLayout() {
   return (
     <>
-      <header>
-        <h1>gesso</h1>
+      <header className="flex items-center justify-between gap-4 p-4">
+        <h1 className="text-xl font-bold">gesso</h1>
         <AccountMenu />
       </header>
-      <main>
+      <main className="p-4">
         <Outlet />
       </main>
     </>

@@ -18,6 +18,7 @@
   },
   "rules": {
     "typescript/no-floating-promises": "error",
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
     "react/react-in-jsx-scope": "off"
   },
   "env": {
