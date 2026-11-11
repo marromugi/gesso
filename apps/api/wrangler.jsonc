@@ -13,6 +13,16 @@
   "dev": {
     "port": 8787,
   },
+  "d1_databases": [{ "binding": "DB", "database_name": "gesso", "migrations_dir": "migrations" }],
+  "vars": {
+    // Better Auth's public URL: the web Worker's origin plus `/api/auth`. Local dev overrides it in
+    // .dev.vars (see .dev.vars.example).
+    "AUTH_BASE_URL": "https://gesso-web.marrromugi-dev.workers.dev/api/auth",
+  },
+  // Set with `wrangler secret put` for production and in .dev.vars locally.
+  "secrets": {
+    "required": ["BETTER_AUTH_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
+  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,

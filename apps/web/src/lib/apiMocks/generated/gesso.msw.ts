@@ -18,11 +18,14 @@ import type {
 } from 'msw';
 
 import type {
-  Health
+  Health,
+  Me
 } from '../../api/generated/gesso';
 
 
 export const getGetHealthResponseMock = (overrideResponse: Partial<Extract<Health, object>> = {}): Health => ({status: faker.helpers.arrayElement(['ok'] as const), ...overrideResponse})
+
+export const getGetMeResponseMock = (overrideResponse: Partial<Extract<Me, object>> = {}): Me => ({user: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.string.alpha({length: {min: 10, max: 20}}), image: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), null])},null,]), ...overrideResponse})
 
 
 export const getGetHealthMockHandler = (overrideResponse?: Health | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Health> | Health), options?: RequestHandlerOptions) => {
@@ -36,6 +39,19 @@ export const getGetHealthMockHandler = (overrideResponse?: Health | ((info: Para
       })
   }, options)
 }
+
+export const getGetMeMockHandler = (overrideResponse?: Me | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Me> | Me), options?: RequestHandlerOptions) => {
+  return http.get('*/me', async (info: Parameters<HttpResponseResolver>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetMeResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
 export const getGessoAPIMock = () => [
-  getGetHealthMockHandler()
+  getGetHealthMockHandler(),
+  getGetMeMockHandler()
 ]

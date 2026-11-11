@@ -1,0 +1,9 @@
+# Copy to .dev.vars (git-ignored) for `pnpm dev`.
+# The web dev server proxies /api to this Worker, so Better Auth's public URL is the dev server's.
+AUTH_BASE_URL=http://localhost:5173/api/auth
+# Any random string of 32+ characters, e.g. from `openssl rand -base64 32`.
+BETTER_AUTH_SECRET=
+# A GitHub OAuth app for local use, with the callback URL
+# http://localhost:5173/api/auth/callback/github
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
