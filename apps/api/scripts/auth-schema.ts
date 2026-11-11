@@ -49,7 +49,8 @@ if (command === "check") {
   if (!missing) {
     console.log("migrations/ already has everything Better Auth needs.");
   } else {
-    const number = String(migrationFiles.length + 1).padStart(4, "0");
+    const lastNumber = Math.max(0, ...migrationFiles.map((file) => Number.parseInt(file, 10)));
+    const number = String(lastNumber + 1).padStart(4, "0");
     const path = resolve(migrationsDir, `${number}_${name}.sql`);
     writeFileSync(path, `${(await compileMigrations()).trim()}\n`);
     console.log(`Wrote ${path}`);

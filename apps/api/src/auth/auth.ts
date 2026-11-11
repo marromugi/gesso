@@ -29,8 +29,8 @@ export function getAuth(env: Env): Auth {
  */
 export function toPublicAuthRequest(request: Request, authBaseUrl: string): Request {
   const url = new URL(request.url);
-  if (!url.pathname.startsWith(`${authRoutePrefix}/`)) {
-    throw new Error(`${url.pathname} is not under ${authRoutePrefix}/`);
+  if (url.pathname !== authRoutePrefix && !url.pathname.startsWith(`${authRoutePrefix}/`)) {
+    throw new Error(`${url.pathname} is not under ${authRoutePrefix}`);
   }
   const publicBase = new URL(authBaseUrl);
   url.protocol = publicBase.protocol;
