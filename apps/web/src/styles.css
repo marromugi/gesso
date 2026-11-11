@@ -7,7 +7,12 @@
   --color-surface: #f3f3f4;
   --color-surface-raised: #ffffff;
   --color-error: #d33;
+  --color-scrim: #0006;
   --color-page: var(--color-stone-50);
+
+  /* What the notch, status bar, and home indicator take from the top and bottom of the screen; 0 on the desktop. */
+  --spacing-safe-top: env(safe-area-inset-top);
+  --spacing-safe-bottom: env(safe-area-inset-bottom);
 
   /* Tailwind writes a shadow's value into its class, so the color that changes with the scheme sits in a variable of its own. */
   --shadow-float: 0 1px 6px 0 var(--shadow-float-color);
@@ -45,6 +50,7 @@
       --color-surface: #1f1f21;
       --color-surface-raised: #2c2c2f;
       --color-error: #f66;
+      --color-scrim: #000a;
       --color-page: var(--color-stone-950);
       --shadow-float-color: #0006;
     }
