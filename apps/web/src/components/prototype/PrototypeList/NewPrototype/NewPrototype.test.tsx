@@ -65,3 +65,17 @@ test("the trimmed name is sent, and the form closes", async () => {
     expect(screen.queryByLabelText("名前")).toBeNull();
   });
 });
+
+test("a create refused for lack of a session closes the form", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ error: "unauthorized" }, { status: 401 })),
+  );
+  openForm();
+  fireEvent.change(screen.getByLabelText("名前"), { target: { value: "二段ジャンプ" } });
+  fireEvent.click(screen.getByRole("button", { name: "作る" }));
+
+  await waitFor(() => {
+    expect(screen.queryByLabelText("名前")).toBeNull();
+  });
+});

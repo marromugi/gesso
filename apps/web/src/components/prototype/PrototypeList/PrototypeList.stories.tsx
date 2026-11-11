@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, delay, http } from "msw";
+import { ToastRegion } from "@/components/ui/ToastRegion";
 import { getListPrototypesUrl } from "@/lib/api";
 import { getCreatePrototypeMockHandler, getListPrototypesMockHandler } from "@/lib/apiMocks";
 import { PrototypeList } from "./PrototypeList.tsx";
@@ -23,6 +24,15 @@ const prototypes = [
 
 const meta = {
   component: PrototypeList,
+  // The app puts toasts in the root layout; a story has to place them itself.
+  decorators: [
+    (Story) => (
+      <>
+        <Story />
+        <ToastRegion />
+      </>
+    ),
+  ],
 } satisfies Meta<typeof PrototypeList>;
 
 export default meta;

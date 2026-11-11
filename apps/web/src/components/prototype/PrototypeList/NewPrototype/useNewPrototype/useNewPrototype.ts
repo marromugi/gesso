@@ -36,20 +36,31 @@ export type NewPrototype = {
  * and the list is fetched again; on failure a toast says why and the form keeps its text.
  */
 export function useNewPrototype(): NewPrototype {
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
   const queryClient = useQueryClient();
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: valibotResolver(formSchema),
     defaultValues: emptyForm,
   });
+  // Closing, by success or by the person, empties the form, so it opens again with no errors.
+  const setOpen = (next: boolean) => {
+    if (!next) form.reset(emptyForm);
+    setOpenState(next);
+  };
   const create = useCreatePrototype({
     mutation: {
       onSuccess: async () => {
         setOpen(false);
-        form.reset(emptyForm);
         await queryClient.invalidateQueries({ queryKey: getListPrototypesQueryKey() });
       },
-      onError: (error) => toastError(failureText(error.failure)),
+      onError: async (error) => {
+        toastError(failureText(error.failure));
+        if (isSignedOut(error.failure)) {
+          // The session ended, so what was fetched with it is dropped and fetched again.
+          setOpen(false);
+          await queryClient.resetQueries();
+        }
+      },
     },
   });
 
@@ -63,10 +74,15 @@ export function useNewPrototype(): NewPrototype {
   };
 }
 
+/** HTTP status the API answers with when the request carries no valid session. */
+const unauthorizedStatus = 401;
+
+function isSignedOut(failure: ApiFailure): boolean {
+  return failure.kind === "rejected" && failure.status === unauthorizedStatus;
+}
+
 function failureText(failure: ApiFailure): string {
   if (failure.kind === "unreachable") return "API に接続できず、プロトタイプを作れませんでした";
-  if (failure.kind === "rejected" && failure.status === 401) {
-    return "サインインが切れています。サインインし直してください";
-  }
+  if (isSignedOut(failure)) return "サインインが切れています。サインインし直してください";
   return "プロトタイプを作れませんでした";
 }
