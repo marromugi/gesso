@@ -1,5 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
-import { parseGitHubUserIds, signInOnlyAllowedGitHubUsers } from "./allowedGitHubUsers.ts";
+import { github } from "better-auth/social-providers";
+import { onlyAllowedGitHubUsers, parseGitHubUserIds } from "./allowedGitHubUsers.ts";
 
 /** What the auth setup reads from the Worker's environment. */
 export type AuthEnv = Record<
@@ -15,11 +16,14 @@ export type AuthEnv = Record<
  * Better Auth's settings, apart from the database. `scripts/auth-schema.ts` builds the schema from
  * these against a local SQLite file, so they must not import anything that only exists on Workers.
  *
- * Sign-in is GitHub only, and only for the GitHub users in `ALLOWED_GITHUB_USER_IDS`; no
- * passwords are stored. The provider's tokens are dropped whenever an
- * account row is written, because nothing here calls GitHub after sign-in.
+ * Sign-in is GitHub only, and only for the GitHub users in `ALLOWED_GITHUB_USER_IDS` (checked
+ * again on every session read, in `session.ts`); no passwords are stored. The provider's tokens
+ * are dropped whenever an account row is written, because nothing here calls GitHub after
+ * sign-in.
  */
 export function authOptions(env: AuthEnv) {
+  // Better Auth's own GitHub profile lookup, which the allowlist wraps.
+  const gitHub = github({ clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET });
   return {
     baseURL: env.AUTH_BASE_URL,
     secret: env.BETTER_AUTH_SECRET,
@@ -28,8 +32,8 @@ export function authOptions(env: AuthEnv) {
       github: {
         clientId: env.GITHUB_CLIENT_ID,
         clientSecret: env.GITHUB_CLIENT_SECRET,
-        getUserInfo: signInOnlyAllowedGitHubUsers(
-          { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },
+        getUserInfo: onlyAllowedGitHubUsers(
+          (tokens) => gitHub.getUserInfo(tokens),
           parseGitHubUserIds(env.ALLOWED_GITHUB_USER_IDS),
         ),
       },

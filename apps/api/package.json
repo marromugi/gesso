@@ -12,6 +12,7 @@
     "deploy": "WRANGLER_SEND_METRICS=false wrangler d1 migrations apply DB --remote && WRANGLER_SEND_METRICS=false wrangler deploy",
     "typecheck": "WRANGLER_SEND_METRICS=false wrangler types && tsc -p . && tsc -p scripts",
     "openapi": "node scripts/write-openapi.ts",
+    "test": "vitest run",
     "auth:migration": "node scripts/auth-schema.ts write",
     "db:migration": "drizzle-kit generate --name"
   },
@@ -26,6 +27,7 @@
     "@types/node": "^24.19.2",
     "drizzle-kit": "^0.31.11",
     "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
     "wrangler": "^4.160.0"
   }
 }
