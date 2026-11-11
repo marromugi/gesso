@@ -41,11 +41,24 @@ const getMe = createRoute({
 export const app = new OpenAPIHono<{ Bindings: Env }>()
   .openapi(getHealth, (c) => c.json({ status: "ok" } as const, 200))
   .openapi(getMe, async (c) => {
-    const session = await getAuth(c.env).api.getSession({ headers: c.req.raw.headers });
+    const { headers, response: session } = await getAuth(c.env).api.getSession({
+      headers: c.req.raw.headers,
+      returnHeaders: true,
+    });
+    // Better Auth extends the session or clears a bad cookie through these.
+    for (const cookie of headers.getSetCookie()) c.header("set-cookie", cookie, { append: true });
     if (!session) return c.json({ user: null }, 200);
     const { id, name, email, image } = session.user;
     return c.json({ user: { id, name, email, image: image ?? null } }, 200);
   });
+
+app.post(`${authRoutePrefix}/sign-in/*`, async (c, next) => {
+  // Each sign-in that is started writes its OAuth state to D1, with or without a session.
+  const client = c.req.header("cf-connecting-ip") ?? "unknown";
+  const { success } = await c.env.SIGN_IN_RATE_LIMIT.limit({ key: client });
+  if (!success) return c.text("Too Many Requests", 429);
+  return next();
+});
 
 app.on(["GET", "POST"], `${authRoutePrefix}/*`, (c) =>
   getAuth(c.env).handler(toPublicAuthRequest(c.req.raw, c.env.AUTH_BASE_URL)),

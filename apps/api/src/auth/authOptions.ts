@@ -10,7 +10,7 @@ export type AuthEnv = Record<
  * Better Auth's settings, apart from the database. `scripts/auth-schema.ts` builds the schema from
  * these against a local SQLite file, so they must not import anything that only exists on Workers.
  *
- * Sign-in is GitHub only; no passwords are stored. The provider's tokens are dropped before the
+ * Sign-in is GitHub only; no passwords are stored. The provider's tokens are dropped whenever an
  * account row is written, because nothing here calls GitHub after sign-in.
  */
 export function authOptions(env: AuthEnv) {
@@ -21,12 +21,21 @@ export function authOptions(env: AuthEnv) {
     socialProviders: {
       github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },
     },
+    // Linking more accounts and reading the provider's tokens have no use with one provider and
+    // no stored tokens.
+    disabledPaths: [
+      "/link-social",
+      "/unlink-account",
+      "/list-accounts",
+      "/account-info",
+      "/get-access-token",
+      "/refresh-token",
+    ],
     account: { updateAccountOnSignIn: false },
     databaseHooks: {
       account: {
-        create: {
-          before: async (account) => ({ data: withoutProviderTokens(account) }),
-        },
+        create: { before: async (account) => ({ data: withoutProviderTokens(account) }) },
+        update: { before: async (account) => ({ data: withoutProviderTokens(account) }) },
       },
     },
     advanced: {

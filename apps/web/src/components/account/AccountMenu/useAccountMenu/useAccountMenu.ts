@@ -38,11 +38,9 @@ export function useAccountMenu(): AccountMenu {
 
   return {
     account: toAccount(me),
-    // The page is about to leave for GitHub once the call succeeds, so success still counts as
-    // pending.
     signIn: {
       run: () => signInMutation.mutate(),
-      pending: signInMutation.isPending || signInMutation.isSuccess,
+      pending: signInMutation.isPending,
       failure: signInMutation.error?.failure ?? null,
     },
     signOut: {

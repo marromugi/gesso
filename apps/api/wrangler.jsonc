@@ -14,6 +14,14 @@
     "port": 8787,
   },
   "d1_databases": [{ "binding": "DB", "database_name": "gesso", "migrations_dir": "migrations" }],
+  // Per client IP, for POST /auth/sign-in/* (src/app.ts).
+  "ratelimits": [
+    {
+      "name": "SIGN_IN_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
   "vars": {
     // Better Auth's public URL: the web Worker's origin plus `/api/auth`. Local dev overrides it in
     // .dev.vars (see .dev.vars.example).
