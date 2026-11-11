@@ -1,5 +1,6 @@
 import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { AccountMenu } from "@/components/account/AccountMenu";
+import { ToastRegion } from "@/components/ui/ToastRegion";
 
 export const Route = createRootRoute({ component: RootLayout });
 
@@ -13,6 +14,7 @@ function RootLayout() {
       <main className="p-4">
         <Outlet />
       </main>
+      <ToastRegion />
     </>
   );
 }

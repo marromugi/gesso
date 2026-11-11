@@ -63,6 +63,70 @@
           "email",
           "image"
         ]
+      },
+      "PrototypeList": {
+        "type": "object",
+        "properties": {
+          "prototypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Prototype"
+            }
+          }
+        },
+        "required": [
+          "prototypes"
+        ]
+      },
+      "Prototype": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "unauthorized"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "NewPrototype": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
       }
     },
     "parameters": {}
@@ -95,6 +159,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes": {
+      "get": {
+        "operationId": "listPrototypes",
+        "responses": {
+          "200": {
+            "description": "The signed-in user's prototypes, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrototypeList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPrototype",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPrototype"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The prototype, created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prototype"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not a valid new prototype."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
                 }
               }
             }

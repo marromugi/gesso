@@ -14,18 +14,26 @@ import {
 } from 'msw';
 import type {
   HttpResponseResolver,
+  PathParams,
   RequestHandlerOptions
 } from 'msw';
 
 import type {
   Health,
-  Me
+  Me,
+  NewPrototype,
+  Prototype,
+  PrototypeList
 } from '../../api/generated/gesso';
 
 
 export const getGetHealthResponseMock = (overrideResponse: Partial<Extract<Health, object>> = {}): Health => ({status: faker.helpers.arrayElement(['ok'] as const), ...overrideResponse})
 
 export const getGetMeResponseMock = (overrideResponse: Partial<Extract<Me, object>> = {}): Me => ({user: faker.helpers.arrayElement([{id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), email: faker.string.alpha({length: {min: 10, max: 20}}), image: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), null])},null,]), ...overrideResponse})
+
+export const getListPrototypesResponseMock = (overrideResponse: Partial<Extract<PrototypeList, object>> = {}): PrototypeList => ({prototypes: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), updatedAt: faker.string.alpha({length: {min: 10, max: 20}})})), ...overrideResponse})
+
+export const getCreatePrototypeResponseMock = (overrideResponse: Partial<Extract<Prototype, object>> = {}): Prototype => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), updatedAt: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
 
 
 export const getGetHealthMockHandler = (overrideResponse?: Health | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Health> | Health), options?: RequestHandlerOptions) => {
@@ -51,7 +59,33 @@ export const getGetMeMockHandler = (overrideResponse?: Me | ((info: Parameters<H
       })
   }, options)
 }
+
+export const getListPrototypesMockHandler = (overrideResponse?: PrototypeList | ((info: Parameters<HttpResponseResolver>[0]) => Promise<PrototypeList> | PrototypeList), options?: RequestHandlerOptions) => {
+  return http.get('*/prototypes', async (info: Parameters<HttpResponseResolver>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListPrototypesResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
+
+export const getCreatePrototypeMockHandler = (overrideResponse?: Prototype | ((info: Parameters<HttpResponseResolver<PathParams, NewPrototype>>[0]) => Promise<Prototype> | Prototype), options?: RequestHandlerOptions) => {
+  return http.post<PathParams, NewPrototype>('*/prototypes', async (info: Parameters<HttpResponseResolver<PathParams, NewPrototype>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getCreatePrototypeResponseMock(),
+      { status: 201
+      })
+  }, options)
+}
 export const getGessoAPIMock = () => [
   getGetHealthMockHandler(),
-  getGetMeMockHandler()
+  getGetMeMockHandler(),
+  getListPrototypesMockHandler(),
+  getCreatePrototypeMockHandler()
 ]
