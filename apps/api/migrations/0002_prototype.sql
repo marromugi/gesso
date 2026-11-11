@@ -1,10 +1,7 @@
 create table "prototype" (
   "id" text not null primary key,
   "ownerId" text not null references "user" ("id") on delete cascade,
-  "title" text not null,
-  "question" text not null,
-  "kind" text not null check ("kind" in ('mechanic', 'level')),
-  "status" text not null check ("status" in ('building', 'testing', 'adopted', 'dropped')),
+  "name" text not null,
   "createdAt" text not null,
   "updatedAt" text not null
 );

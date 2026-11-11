@@ -84,27 +84,8 @@
           "id": {
             "type": "string"
           },
-          "title": {
+          "name": {
             "type": "string"
-          },
-          "question": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "mechanic",
-              "level"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "building",
-              "testing",
-              "adopted",
-              "dropped"
-            ]
           },
           "createdAt": {
             "type": "string"
@@ -115,10 +96,7 @@
         },
         "required": [
           "id",
-          "title",
-          "question",
-          "kind",
-          "status",
+          "name",
           "createdAt",
           "updatedAt"
         ]
@@ -140,28 +118,14 @@
       "NewPrototype": {
         "type": "object",
         "properties": {
-          "title": {
+          "name": {
             "type": "string",
             "minLength": 1,
             "maxLength": 100
-          },
-          "question": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 1000
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "mechanic",
-              "level"
-            ]
           }
         },
         "required": [
-          "title",
-          "question",
-          "kind"
+          "name"
         ]
       }
     },
@@ -242,7 +206,7 @@
         },
         "responses": {
           "201": {
-            "description": "The prototype, created as being built.",
+            "description": "The prototype, created.",
             "content": {
               "application/json": {
                 "schema": {

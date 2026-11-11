@@ -13,10 +13,7 @@ async function fakeApi(_url: RequestInfo | URL, init?: RequestInit): Promise<Res
   return Response.json(
     {
       id: "p1",
-      title: "二段ジャンプ",
-      question: "壁蹴りと組み合わせると気持ちいいか",
-      kind: "level",
-      status: "building",
+      name: "二段ジャンプ",
       createdAt: "2026-11-11T00:00:00.000Z",
       updatedAt: "2026-11-11T00:00:00.000Z",
     },
@@ -47,31 +44,24 @@ function openForm() {
   fireEvent.click(screen.getByRole("button", { name: "新しいプロトタイプ" }));
 }
 
-test("a title of only spaces is refused before anything is sent", async () => {
+test("a name of only spaces is refused before anything is sent", async () => {
   openForm();
-  fireEvent.change(screen.getByLabelText("タイトル"), { target: { value: "   " } });
-  fireEvent.change(screen.getByLabelText("何を確かめるか"), { target: { value: "気持ちいいか" } });
+  fireEvent.change(screen.getByLabelText("名前"), { target: { value: "   " } });
   fireEvent.click(screen.getByRole("button", { name: "作る" }));
 
   expect(await screen.findByText("1〜100 文字で入力してください")).toBeTruthy();
   expect(sent).toEqual([]);
 });
 
-test("the trimmed text and the chosen kind are sent, and the form closes", async () => {
+test("the trimmed name is sent, and the form closes", async () => {
   openForm();
-  fireEvent.change(screen.getByLabelText("タイトル"), { target: { value: "  二段ジャンプ " } });
-  fireEvent.change(screen.getByLabelText("何を確かめるか"), {
-    target: { value: "壁蹴りと組み合わせると気持ちいいか" },
-  });
-  fireEvent.click(screen.getByLabelText("レベル"));
+  fireEvent.change(screen.getByLabelText("名前"), { target: { value: "  二段ジャンプ " } });
   fireEvent.click(screen.getByRole("button", { name: "作る" }));
 
   await waitFor(() => {
-    expect(sent).toEqual([
-      { title: "二段ジャンプ", question: "壁蹴りと組み合わせると気持ちいいか", kind: "level" },
-    ]);
+    expect(sent).toEqual([{ name: "二段ジャンプ" }]);
   });
   await waitFor(() => {
-    expect(screen.queryByLabelText("タイトル")).toBeNull();
+    expect(screen.queryByLabelText("名前")).toBeNull();
   });
 });

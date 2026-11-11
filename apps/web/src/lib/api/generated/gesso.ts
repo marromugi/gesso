@@ -48,30 +48,9 @@ export interface Me {
   user: User | null;
 }
 
-export type PrototypeKind = typeof PrototypeKind[keyof typeof PrototypeKind];
-
-
-export const PrototypeKind = {
-  mechanic: 'mechanic',
-  level: 'level',
-} as const;
-
-export type PrototypeStatus = typeof PrototypeStatus[keyof typeof PrototypeStatus];
-
-
-export const PrototypeStatus = {
-  building: 'building',
-  testing: 'testing',
-  adopted: 'adopted',
-  dropped: 'dropped',
-} as const;
-
 export interface Prototype {
   id: string;
-  title: string;
-  question: string;
-  kind: PrototypeKind;
-  status: PrototypeStatus;
+  name: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -91,26 +70,12 @@ export interface Unauthorized {
   error: UnauthorizedError;
 }
 
-export type NewPrototypeKind = typeof NewPrototypeKind[keyof typeof NewPrototypeKind];
-
-
-export const NewPrototypeKind = {
-  mechanic: 'mechanic',
-  level: 'level',
-} as const;
-
 export interface NewPrototype {
   /**
      * @minLength 1
      * @maxLength 100
      */
-  title: string;
-  /**
-     * @minLength 1
-     * @maxLength 1000
-     */
-  question: string;
-  kind: NewPrototypeKind;
+  name: string;
 }
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];

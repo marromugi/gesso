@@ -1,23 +1,14 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { type SignedInVariables, requireUser } from "../auth/index.ts";
-import {
-  createPrototype,
-  listPrototypes,
-  prototypeKinds,
-  prototypeStatuses,
-} from "./prototypeStore.ts";
+import { createPrototype, listPrototypes } from "./prototypeStore.ts";
 
-/** The longest title and question a prototype takes, in characters. */
-const titleMaxLength = 100;
-const questionMaxLength = 1000;
+/** The longest name a prototype takes, in characters. */
+const nameMaxLength = 100;
 
 const Prototype = z
   .object({
     id: z.string(),
-    title: z.string(),
-    question: z.string(),
-    kind: z.enum(prototypeKinds),
-    status: z.enum(prototypeStatuses),
+    name: z.string(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -26,11 +17,7 @@ const Prototype = z
 const PrototypeList = z.object({ prototypes: z.array(Prototype) }).openapi("PrototypeList");
 
 const NewPrototype = z
-  .object({
-    title: z.string().trim().min(1).max(titleMaxLength),
-    question: z.string().trim().min(1).max(questionMaxLength),
-    kind: z.enum(prototypeKinds),
-  })
+  .object({ name: z.string().trim().min(1).max(nameMaxLength) })
   .openapi("NewPrototype");
 
 const Unauthorized = z.object({ error: z.literal("unauthorized") }).openapi("Unauthorized");
@@ -64,7 +51,7 @@ const createPrototypeRoute = createRoute({
   },
   responses: {
     201: {
-      description: "The prototype, created as being built.",
+      description: "The prototype, created.",
       content: { "application/json": { schema: Prototype } },
     },
     400: { description: "The body is not a valid new prototype." },

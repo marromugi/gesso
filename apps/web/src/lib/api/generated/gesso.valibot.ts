@@ -24,10 +24,7 @@ export const GetMeResponse = v.object({
 export const ListPrototypesResponse = v.object({
   prototypes: v.array(v.object({
   id: v.string(),
-  title: v.string(),
-  question: v.string(),
-  kind: v.picklist(['mechanic', 'level']),
-  status: v.picklist(['building', 'testing', 'adopted', 'dropped']),
+  name: v.string(),
   createdAt: v.string(),
   updatedAt: v.string()
 }))
@@ -35,17 +32,12 @@ export const ListPrototypesResponse = v.object({
 
 
 export const CreatePrototypeBody = v.object({
-  title: v.pipe(v.string(), v.minLength(1), v.check((value) => value.length <= 100 || (value.length <= 200 && [...value].length <= 100), 'Invalid length: Expected <=100')),
-  question: v.pipe(v.string(), v.minLength(1), v.check((value) => value.length <= 1000 || (value.length <= 2000 && [...value].length <= 1000), 'Invalid length: Expected <=1000')),
-  kind: v.picklist(['mechanic', 'level'])
+  name: v.pipe(v.string(), v.minLength(1), v.check((value) => value.length <= 100 || (value.length <= 200 && [...value].length <= 100), 'Invalid length: Expected <=100'))
 })
 
 export const CreatePrototypeResponse = v.object({
   id: v.string(),
-  title: v.string(),
-  question: v.string(),
-  kind: v.picklist(['mechanic', 'level']),
-  status: v.picklist(['building', 'testing', 'adopted', 'dropped']),
+  name: v.string(),
   createdAt: v.string(),
   updatedAt: v.string()
 })

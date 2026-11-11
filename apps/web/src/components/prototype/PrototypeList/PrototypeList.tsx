@@ -1,5 +1,4 @@
 import type { ApiFailure } from "@/lib/api";
-import { prototypeKindLabels, prototypeStatusLabels } from "@/lib/prototype";
 import { NewPrototype } from "./NewPrototype";
 import { usePrototypeList } from "./usePrototypeList";
 
@@ -28,15 +27,9 @@ export function PrototypeList() {
           {list.prototypes.map((prototype) => (
             <li
               key={prototype.id}
-              className="flex flex-col gap-1 rounded-container border border-edge bg-surface-raised container-p-4"
+              className="rounded-container border border-edge bg-surface-raised font-semibold container-p-4"
             >
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-semibold">{prototype.title}</span>
-                <span className="shrink-0 text-xs opacity-70">
-                  {prototypeKindLabels[prototype.kind]}・{prototypeStatusLabels[prototype.status]}
-                </span>
-              </div>
-              <p className="text-sm">{prototype.question}</p>
+              {prototype.name}
             </li>
           ))}
         </ul>

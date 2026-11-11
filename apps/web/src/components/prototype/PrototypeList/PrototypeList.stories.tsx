@@ -9,19 +9,13 @@ const listPath = `*${getListPrototypesUrl()}`;
 const prototypes = [
   {
     id: "p2",
-    title: "1-1 グレーボックス",
-    question: "最初の 30 秒で操作を覚えられるか",
-    kind: "level",
-    status: "building",
+    name: "1-1 グレーボックス",
     createdAt: "2026-11-11T10:00:00.000Z",
     updatedAt: "2026-11-11T10:00:00.000Z",
   },
   {
     id: "p1",
-    title: "二段ジャンプ",
-    question: "壁蹴りと組み合わせると気持ちいいか",
-    kind: "mechanic",
-    status: "adopted",
+    name: "二段ジャンプ",
     createdAt: "2026-11-10T10:00:00.000Z",
     updatedAt: "2026-11-11T09:00:00.000Z",
   },
