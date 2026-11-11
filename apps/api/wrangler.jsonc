@@ -13,7 +13,14 @@
   "dev": {
     "port": 8787,
   },
-  "d1_databases": [{ "binding": "DB", "database_name": "gesso", "migrations_dir": "migrations" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gesso",
+      "database_id": "abd44e69-70a3-4246-9cb5-13bfd80302a2",
+      "migrations_dir": "migrations",
+    },
+  ],
   // Per client IP, for POST /auth/sign-in/* (src/app.ts).
   "ratelimits": [
     {
