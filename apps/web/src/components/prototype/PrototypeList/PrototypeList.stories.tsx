@@ -23,6 +23,8 @@ const prototypes: Prototype[] = [
   },
 ];
 
+const nameError = "1〜100 文字で入力してください";
+
 /**
  * Stands in for the API's prototypes: the list the handlers return grows with each create,
  * and `sent` keeps every body that was posted.
@@ -51,11 +53,25 @@ function fakePrototypes(initial: Prototype[]) {
 /** The fake API of the story being run, set up again before each run. */
 let api = fakePrototypes(prototypes);
 
+/** Waits until `text` is on screen and visible (a modal or toast may still be fading in). */
+async function showsText(text: string, timeout?: number) {
+  await waitFor(
+    async () => {
+      await expect(screen.getByText(text)).toBeVisible();
+    },
+    { timeout },
+  );
+}
+
+/** Opens the form and types `name` into its field. */
+async function typeNewPrototype(name: string) {
+  await userEvent.click(await screen.findByRole("button", { name: "新しいプロトタイプ" }));
+  await userEvent.type(await screen.findByLabelText("名前"), name);
+}
+
 /** Opens the form, types `name` into it, and presses 作る. */
 async function submitNewPrototype(name: string) {
-  await userEvent.click(await screen.findByRole("button", { name: "新しいプロトタイプ" }));
-  const field = await screen.findByLabelText("名前");
-  await userEvent.type(field, name);
+  await typeNewPrototype(name);
   await userEvent.click(screen.getByRole("button", { name: "作る" }));
 }
 
@@ -81,7 +97,7 @@ export const Loading: Story = {
     msw.use(http.get(listPath, () => delay("infinite")));
   },
   async play() {
-    await expect(await screen.findByText("プロトタイプを読み込んでいます…")).toBeVisible();
+    await showsText("プロトタイプを読み込んでいます…");
   },
 };
 
@@ -92,10 +108,7 @@ export const SignedOut: Story = {
     );
   },
   async play() {
-    await expect(
-      await screen.findByText("サインインすると、プロトタイプを作って一覧で見られます。"),
-    ).toBeVisible();
-    await expect(screen.queryByRole("button", { name: "新しいプロトタイプ" })).toBeNull();
+    await showsText("サインインすると、プロトタイプを作って一覧で見られます。");
   },
 };
 
@@ -105,7 +118,7 @@ export const Empty: Story = {
     msw.use(...api.handlers);
   },
   async play() {
-    await expect(await screen.findByText("まだプロトタイプがありません。")).toBeVisible();
+    await showsText("まだプロトタイプがありません。");
   },
 };
 
@@ -124,14 +137,17 @@ export const WithPrototypes: Story = {
   },
 };
 
-/** A new prototype is sent with its name trimmed, the form closes, and it heads the list. */
+/**
+ * Enter sends the new prototype with its name trimmed; the form closes and the prototype heads
+ * the list.
+ */
 export const CreatesPrototype: Story = {
   beforeEach({ msw }) {
     api = fakePrototypes(prototypes);
     msw.use(...api.handlers);
   },
   async play() {
-    await submitNewPrototype("  敵の索敵 ");
+    await typeNewPrototype("  敵の索敵 {Enter}");
 
     await waitFor(async () => {
       await expect(screen.getAllByRole("listitem")[0]).toHaveTextContent("敵の索敵");
@@ -152,8 +168,29 @@ export const RefusesBlankName: Story = {
   async play() {
     await submitNewPrototype("   ");
 
-    await expect(await screen.findByText("1〜100 文字で入力してください")).toBeVisible();
+    await showsText(nameError);
     await expect(api.sent).toEqual([]);
+  },
+};
+
+/** Closing the form empties it, so it opens again without the error it showed. */
+export const ReopensEmpty: Story = {
+  beforeEach({ msw }) {
+    api = fakePrototypes(prototypes);
+    msw.use(...api.handlers);
+  },
+  async play() {
+    await submitNewPrototype("   ");
+    await showsText(nameError);
+    await userEvent.keyboard("{Escape}");
+    await waitFor(async () => {
+      await expect(screen.queryByLabelText("名前")).toBeNull();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "新しいプロトタイプ" }));
+
+    await expect(await screen.findByLabelText("名前")).toHaveValue("");
+    await expect(screen.queryByText(nameError)).toBeNull();
   },
 };
 
@@ -168,12 +205,12 @@ export const CreateFails: Story = {
   async play() {
     await submitNewPrototype("敵の索敵");
 
-    await expect(await screen.findByText("プロトタイプを作れませんでした")).toBeVisible();
+    await showsText("プロトタイプを作れませんでした");
     await expect(screen.getByLabelText("名前")).toHaveValue("敵の索敵");
   },
 };
 
-/** The session ended before creating: the form closes and the page asks to sign in again. */
+/** The session ended before creating: the page asks to sign in again. */
 export const SessionExpired: Story = {
   beforeEach({ msw }) {
     let signedIn = true;
@@ -192,25 +229,48 @@ export const SessionExpired: Story = {
   async play() {
     await submitNewPrototype("敵の索敵");
 
-    await expect(
-      await screen.findByText("サインインが切れています。サインインし直してください"),
-    ).toBeVisible();
-    await expect(
-      await screen.findByText("サインインすると、プロトタイプを作って一覧で見られます。"),
-    ).toBeVisible();
-    await expect(screen.queryByLabelText("名前")).toBeNull();
+    await showsText("サインインが切れています。サインインし直してください");
+    await showsText("サインインすると、プロトタイプを作って一覧で見られます。");
   },
 };
 
+/** Fetching the list again after a create fails, but the list already shown stays. */
+export const KeepsListWhenRefetchFails: Story = {
+  beforeEach({ msw }) {
+    let listCalls = 0;
+    msw.use(
+      http.get(listPath, () => {
+        listCalls += 1;
+        return listCalls === 1
+          ? HttpResponse.json({ prototypes })
+          : new HttpResponse(null, { status: 500 });
+      }),
+      getCreatePrototypeMockHandler(),
+    );
+  },
+  async play() {
+    await submitNewPrototype("敵の索敵");
+    await waitFor(async () => {
+      await expect(screen.queryByLabelText("名前")).toBeNull();
+    });
+
+    // The refetch answered 500; the list is still the one shown before it.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await expect(screen.queryByText(/プロトタイプを読み込めません/)).toBeNull();
+    await expect(screen.getAllByRole("listitem").map((row) => row.textContent)).toEqual([
+      "1-1 グレーボックス",
+      "二段ジャンプ",
+    ]);
+  },
+};
+
+/** The API cannot be reached even after the retries. */
 export const Unreachable: Story = {
   beforeEach({ msw }) {
     msw.use(http.get(listPath, () => HttpResponse.error()));
   },
   async play() {
-    await expect(
-      await screen.findByText("プロトタイプを読み込めません（API に接続できません）", undefined, {
-        timeout: 10_000,
-      }),
-    ).toBeVisible();
+    // Three retries back off 1 + 2 + 4 seconds before the failure shows.
+    await showsText("プロトタイプを読み込めません（API に接続できません）", 15_000);
   },
 };

@@ -56,8 +56,8 @@ export function useNewPrototype(): NewPrototype {
       onError: async (error) => {
         toastError(failureText(error.failure));
         if (isSignedOut(error.failure)) {
-          // The session ended, so what was fetched with it is dropped and fetched again.
-          setOpen(false);
+          // The session ended, so what was fetched with it is dropped and fetched again. The
+          // list then asks to sign in, and this form goes with it.
           await queryClient.resetQueries();
         }
       },
