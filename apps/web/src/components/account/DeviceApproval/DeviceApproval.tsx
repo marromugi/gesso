@@ -40,9 +40,8 @@ function content(approval: Approval): ReactNode {
   return (
     <>
       <p>
-        承認すると、この CLI はあなたとして gesso
-        を使えます（プロトタイプを読む・版を送る）。使わないまま 7 日たつか、CLI で {logout}{" "}
-        するまで続きます。
+        承認すると、この CLI はあなたとして gesso を使えます。使わないまま 7 日たつか、CLI で{" "}
+        {logout} するまで続きます。
       </p>
       <p>
         自分で {login}{" "}
