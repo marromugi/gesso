@@ -1,14 +1,13 @@
-import { mkdir } from "node:fs/promises";
+import { lstat, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type { ApiClient, VersionFile, VersionSource } from "./api/client.ts";
 import { CliError } from "./cliError.ts";
-import { type Repo, initRepo, openRepo } from "./git/repo.ts";
+import { type MergeResult, type Repo, initRepo, locateRepo } from "./git/repo.ts";
 import {
-  deleteLocalFile,
   hashContent,
   isEmptyFolder,
   isVersionPath,
   readManifest,
-  writeLocalFile,
   writeManifest,
 } from "./workspace.ts";
 
@@ -21,22 +20,28 @@ const atOnce = 8;
 /** The page every version starts from (`entryPath` in apps/api). */
 const entryPath = "index.html";
 
-export type PullResult = {
-  version: number;
-  /** Whether `dir` was made a new repository. */
-  initialized: boolean;
-  written: number;
-  deleted: number;
-  /** Whether the files were committed (`false` when nothing changed). */
-  committed: boolean;
-};
+export type PullResult =
+  | { kind: "upToDate"; version: number }
+  | { kind: "noVersion"; initialized: boolean }
+  | {
+      kind: "pulled";
+      version: number;
+      initialized: boolean;
+      files: number;
+      /** How the version's commit came into the branch; a conflict is left for the person. */
+      merge: MergeResult;
+    };
 
 /**
- * Puts version `number` (or the newest) of `prototypeId` into `dir` and commits it as
- * "gesso 版 N". An empty or missing folder is made a new repository first; an existing one must
- * be for this prototype (or none yet) and have nothing uncommitted. Files of the version the
- * repository had that the new one lacks are deleted. Everything is downloaded before the folder
- * is touched. Throws `CliError` when the folder can't take the version.
+ * Brings version `number` (or the newest) of `prototypeId` into the git repository `dir`, the
+ * way `git pull` does: the version becomes a commit "gesso 版 N" on top of the one the
+ * repository last synced with, and is merged into the current branch (a fast-forward when
+ * nothing was committed since). Local commits are kept; conflicts are left to resolve in git.
+ *
+ * An empty or missing folder is made a new repository. An existing one must be this
+ * prototype's (or, for a prototype with no version yet, one to tie to it), have nothing
+ * uncommitted, and have no untracked or ignored file where the version has one. Nothing in the
+ * folder changes until everything is downloaded, and git itself writes the files.
  */
 export async function pull(
   api: ApiClient,
@@ -44,40 +49,72 @@ export async function pull(
   dir: string,
   { number }: { number?: number } = {},
 ): Promise<PullResult> {
-  let repo = await openRepo(dir);
-  const initialized = repo === null;
-  if (repo === null) {
-    if (!(await isEmptyFolder(dir))) {
+  const location = await locateRepo(dir);
+  if (location.kind === "inside") {
+    throw new CliError(
+      `${dir} は別の git のリポジトリ（${location.root}）の中です。リポジトリの外のフォルダーを指定してください。`,
+    );
+  }
+  let repo = location.kind === "root" ? location.repo : null;
+  const manifest = repo === null ? null : await readManifest(await repo.gitDir());
+  if (repo === null && !(await isEmptyFolder(dir))) {
+    throw new CliError(
+      `${dir} は git のリポジトリではなく、空でもありません。空のフォルダーか、このプロトタイプのリポジトリを指定してください。`,
+    );
+  }
+  if (manifest !== null && manifest.prototypeId !== prototypeId) {
+    throw new CliError(`${dir} は別のプロトタイプ（${manifest.prototypeId}）のものです。`);
+  }
+  if (repo !== null && (await repo.hasUncommittedChanges({ untracked: false }))) {
+    throw new CliError(
+      `${dir} に commit していない変更があります。commit するか片づけてから pull してください。`,
+    );
+  }
+
+  const version = number ?? (await newestVersion(api, prototypeId))?.number ?? noVersion;
+  if (manifest !== null && manifest.version === version) return { kind: "upToDate", version };
+  if (repo !== null && manifest === null && version !== noVersion && (await repo.head()) !== null) {
+    throw new CliError(
+      `${dir} は、まだどのプロトタイプとも結びついていない、commit のあるリポジトリです。版を取ってくると今のファイルとぶつかるので、空のフォルダーに pull してください。`,
+    );
+  }
+  const base = manifest?.commit ?? null;
+  if (repo !== null && base !== null && !(await repo.hasCommit(base))) {
+    throw new CliError(`前に同期した commit（${base}）がこのリポジトリにありません。`);
+  }
+
+  const files = version === noVersion ? [] : await api.versionFiles(prototypeId, version);
+  const contents = await inBatches(files, async (file) => ({
+    path: file.path,
+    content: await api.readContent(prototypeId, file.hash),
+  }));
+  if (repo !== null) {
+    const clashing = await untrackedAt(repo, files);
+    if (clashing.length > 0) {
       throw new CliError(
-        `${dir} は git のリポジトリではなく、空でもありません。空のフォルダーか、git のリポジトリを指定してください。`,
-      );
-    }
-    await mkdir(dir, { recursive: true });
-    repo = await initRepo(dir);
-  } else {
-    const manifest = await readManifest(await repo.gitDir());
-    if (manifest !== null && manifest.prototypeId !== prototypeId) {
-      throw new CliError(`${dir} は別のプロトタイプ（${manifest.prototypeId}）のものです。`);
-    }
-    if (await repo.hasUncommittedChanges()) {
-      throw new CliError(
-        `${dir} に commit していない変更があります。commit するか片づけてから pull してください。`,
+        `git が追っていない（無視している）ファイルが、版 ${version} のファイルと同じ場所にあります: ${clashing.join(", ")}。動かすか消してから pull してください。`,
       );
     }
   }
 
-  const version = number ?? (await newestVersion(api, prototypeId))?.number ?? noVersion;
-  const files = version === noVersion ? [] : await api.versionFiles(prototypeId, version);
-  const contents = await download(api, prototypeId, files);
-  const kept = new Set(files.map((file) => file.path));
-  const gone = (await versionPaths(repo)).filter((path) => !kept.has(path));
-  // Old files go first: a path that was a file may now be a folder, or the other way round.
-  for (const path of gone) await deleteLocalFile(dir, path);
-  for (const { path, content } of contents) await writeLocalFile(dir, path, content);
-  const committed = version !== noVersion && (await repo.commitAll(`gesso 版 ${version}`));
-  await writeManifest(await repo.gitDir(), { prototypeId, version });
-  return { version, initialized, written: files.length, deleted: gone.length, committed };
+  const initialized = repo === null;
+  if (repo === null) {
+    await mkdir(dir, { recursive: true });
+    repo = await initRepo(dir);
+  }
+  const gitDir = await repo.gitDir();
+  if (version === noVersion) {
+    await writeManifest(gitDir, { prototypeId, version, commit: base });
+    return { kind: "noVersion", initialized };
+  }
+  const commit = await repo.versionCommit(contents, base, `gesso 版 ${version}`);
+  const merge = await repo.mergeIn(commit, `gesso 版 ${version} を取り込む`);
+  await writeManifest(gitDir, { prototypeId, version, commit });
+  return { kind: "pulled", version, initialized, files: files.length, merge };
 }
+
+/** A committed path that a version never holds, and why. */
+export type LeftOut = { path: string; reason: "dot" | "link" | "submodule" };
 
 export type PushResult =
   | {
@@ -86,31 +123,31 @@ export type PushResult =
       source: VersionSource;
       files: number;
       uploaded: number;
-      /** Committed files a version never holds (dot files, `node_modules`). */
-      leftOut: string[];
+      leftOut: LeftOut[];
       uncommitted: boolean;
     }
-  | { kind: "unchanged"; version: number; uncommitted: boolean };
+  | { kind: "unchanged"; version: number; leftOut: LeftOut[]; uncommitted: boolean };
 
 /**
  * Sends HEAD's commit of the repository `dir` as the next version of the prototype it was
  * pulled for, uploading only content gesso doesn't have yet. Changes not committed are not
- * sent. Nothing is made when the newest version came from the same commit or has the same
- * files. A newer version than the one the repository was synced with would be left behind, so
- * that is refused unless `force`. Throws `CliError` when the folder isn't a prototype's
- * repository or the API refuses the files.
+ * sent. Nothing is made when the newest version has the same files (the same commit, or the one
+ * a pull just made). A newer version than the one the repository was synced with would be left
+ * behind, so that is refused unless `force`. Throws `CliError` when the folder isn't a
+ * prototype's repository or the API refuses the files.
  */
 export async function push(
   api: ApiClient,
   dir: string,
   { force = false }: { force?: boolean } = {},
 ): Promise<PushResult> {
-  const repo = await openRepo(dir);
-  if (repo === null) {
+  const location = await locateRepo(dir);
+  if (location.kind !== "root") {
     throw new CliError(
-      `${dir} は git のリポジトリではありません。\`pnpm gesso pull <プロトタイプの ID> ${dir}\` で用意してください。`,
+      `${dir} は git のリポジトリのフォルダーではありません。\`pnpm gesso pull <プロトタイプの ID> ${dir}\` で用意してください。`,
     );
   }
+  const { repo } = location;
   const gitDir = await repo.gitDir();
   const manifest = await readManifest(gitDir);
   if (manifest === null) {
@@ -121,28 +158,33 @@ export async function push(
   const head = await repo.head();
   if (head === null)
     throw new CliError("commit がありません。git commit してから push してください。");
-  const uncommitted = await repo.hasUncommittedChanges();
+  const uncommitted = await repo.hasUncommittedChanges({ untracked: true });
 
-  const committed = await repo.committedFiles();
-  const included = committed.filter((file) => isVersionPath(file.path));
-  const leftOut = committed.map((file) => file.path).filter((path) => !isVersionPath(path));
-  if (!included.some((file) => file.path === entryPath)) {
+  const entries = await repo.entries(head.commit);
+  const included = entries.filter((entry) => entry.kind === "file" && isVersionPath(entry.path));
+  const leftOut = entries.flatMap((entry): LeftOut[] => {
+    if (entry.kind !== "file") return [{ path: entry.path, reason: entry.kind }];
+    return isVersionPath(entry.path) ? [] : [{ path: entry.path, reason: "dot" }];
+  });
+  if (!included.some((entry) => entry.path === entryPath)) {
     throw new CliError(
       `commit のルートに ${entryPath} がありません。版には ${entryPath} が要ります。`,
     );
   }
-  const local = await inBatches(included, async (file) => {
-    const content = await file.read();
-    return { path: file.path, hash: hashContent(content), content };
+  const local = await inBatches(included, async (entry) => {
+    const content = await repo.readBlob(entry.object);
+    return { path: entry.path, hash: hashContent(content), content };
   });
   const files = local.map(({ path, hash }) => ({ path, hash }));
 
   const newest = await newestVersion(api, manifest.prototypeId);
   if (newest !== null) {
-    // The same commit, or another one with the same files (one `pull` made, say).
+    // The same commit, or another one with the same files (the one a pull made, say).
     if (sameFiles(files, await api.versionFiles(manifest.prototypeId, newest.number))) {
-      await writeManifest(gitDir, { ...manifest, version: newest.number });
-      return { kind: "unchanged", version: newest.number, uncommitted };
+      if (newest.number === manifest.version) {
+        await writeManifest(gitDir, { ...manifest, commit: head.commit });
+      }
+      return { kind: "unchanged", version: newest.number, leftOut, uncommitted };
     }
   }
   const newestNumber = newest?.number ?? noVersion;
@@ -166,7 +208,7 @@ export async function push(
       throw new CliError(`上げたはずの中身がまだ足りません: ${result.hashes.join(", ")}`);
     }
   }
-  await writeManifest(gitDir, { ...manifest, version: result.number });
+  await writeManifest(gitDir, { ...manifest, version: result.number, commit: head.commit });
   return {
     kind: "created",
     version: result.number,
@@ -183,17 +225,19 @@ async function newestVersion(api: ApiClient, prototypeId: string) {
   return newest ?? null;
 }
 
-/** The paths of HEAD's commit that a version holds; none before the first commit. */
-async function versionPaths(repo: Repo): Promise<string[]> {
-  if ((await repo.head()) === null) return [];
-  return (await repo.committedFiles()).map((file) => file.path).filter(isVersionPath);
-}
-
-function download(api: ApiClient, prototypeId: string, files: readonly VersionFile[]) {
-  return inBatches(files, async (file) => ({
-    path: file.path,
-    content: await api.readContent(prototypeId, file.hash),
-  }));
+/**
+ * Version paths where the working tree has something git doesn't track: an untracked or ignored
+ * file (or folder) that bringing the version in would overwrite.
+ */
+async function untrackedAt(repo: Repo, files: readonly VersionFile[]): Promise<string[]> {
+  const tracked = await repo.trackedPaths();
+  const clashing: string[] = [];
+  for (const file of files) {
+    if (tracked.has(file.path)) continue;
+    const found = await lstat(join(repo.dir, file.path)).catch(() => null);
+    if (found !== null) clashing.push(file.path);
+  }
+  return clashing;
 }
 
 /** `work` for each item, `atOnce` at the same time, in the items' order. */

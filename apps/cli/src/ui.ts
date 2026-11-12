@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { cancel, intro } from "@clack/prompts";
+import { cancel, intro, log, spinner } from "@clack/prompts";
 import { type ArgsDef, type CommandDef, type ParsedArgs, defineCommand } from "citty";
 import { createApiClient } from "./api/client.ts";
 import { CliError } from "./cliError.ts";
@@ -29,6 +29,26 @@ export function gessoCommand<T extends ArgsDef>(definition: {
       }
     },
   });
+}
+
+/** Something that takes a while: shown as it runs, then how it ended. */
+export type Progress = {
+  stop(message: string): void;
+  error(message: string): void;
+};
+
+/**
+ * Starts showing `message` while something runs: a spinner on a terminal, and one line when the
+ * output is read by something else (a spinner's redrawing would only add noise there).
+ */
+export function progress(message: string): Progress {
+  if (process.stdout.isTTY) {
+    const shown = spinner();
+    shown.start(message);
+    return { stop: (end) => shown.stop(end), error: (end) => shown.error(end) };
+  }
+  log.step(message);
+  return { stop: (end) => log.success(end), error: (end) => log.error(end) };
 }
 
 /** The API, as the person who signed in with `gesso login`. */

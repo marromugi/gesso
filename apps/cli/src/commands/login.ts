@@ -1,10 +1,10 @@
 import { setTimeout as sleep } from "node:timers/promises";
-import { note, outro, spinner } from "@clack/prompts";
+import { note, outro } from "@clack/prompts";
 import { createApiClient } from "../api/client.ts";
 import { deviceLogin } from "../api/deviceLogin.ts";
 import { CliError } from "../cliError.ts";
 import { credentialsPath, saveCredentials } from "../credentials.ts";
-import { gessoCommand } from "../ui.ts";
+import { type Progress, gessoCommand, progress } from "../ui.ts";
 
 /** Where the CLI signs in when no `--api` is given: the web app's origin plus `/api`. */
 const defaultApiUrl = "https://gesso-web.marrromugi-dev.workers.dev/api";
@@ -21,7 +21,7 @@ export const login = gessoCommand({
   },
   async run(args) {
     const apiUrl = args.api.replace(/\/+$/, "");
-    const waiting = spinner();
+    const shown: { waiting?: Progress } = {};
     const token = await deviceLogin(apiUrl, {
       fetch,
       show({ url, userCode }) {
@@ -35,14 +35,14 @@ export const login = gessoCommand({
           ].join("\n"),
           "ブラウザで承認",
         );
-        waiting.start("承認を待っています");
+        shown.waiting = progress("承認を待っています");
       },
       wait: (ms) => sleep(ms),
     }).catch((error: unknown) => {
-      waiting.error("サインインできませんでした");
+      shown.waiting?.error("サインインできませんでした");
       throw error;
     });
-    waiting.stop("承認されました");
+    shown.waiting?.stop("承認されました");
 
     // Approved, but the API may still refuse the person (no longer allowed to sign in).
     const me = await createApiClient({ apiUrl, token, fetch }).me();

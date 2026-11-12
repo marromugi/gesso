@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import * as v from "valibot";
@@ -43,6 +43,8 @@ export async function saveCredentials(path: string, credentials: Credentials): P
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   const text = `${JSON.stringify({ format: 1, ...credentials }, null, 2)}\n`;
   await writeFile(path, text, { mode: 0o600 });
+  // `mode` applies only to a file made new; one left from before keeps its own.
+  await chmod(path, 0o600);
 }
 
 export async function deleteCredentials(path: string): Promise<void> {

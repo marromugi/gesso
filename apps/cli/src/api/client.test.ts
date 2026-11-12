@@ -63,6 +63,26 @@ test.each([
   await expect(fakeApi(() => response.clone()).client.listVersions("p1")).rejects.toThrow(message);
 });
 
+test("a version the API won't take says what is wrong with it, and where", async () => {
+  // The body @hono/zod-openapi answers with: the ZodError's issues, as JSON in its message.
+  const issues = [
+    { code: "custom", path: ["files", 0, "path"], message: "no dot" },
+    { code: "custom", path: ["files"], message: "no index.html at the root" },
+  ];
+  const api = fakeApi(() =>
+    Response.json(
+      { success: false, error: { name: "ZodError", message: JSON.stringify(issues) } },
+      { status: 400 },
+    ),
+  );
+
+  await expect(
+    api.client.createVersion("p1", [], { commit: "b".repeat(40), branch: null }),
+  ).rejects.toThrow(
+    "p1: API が受けませんでした。\n  files.0.path: no dot\n  files: no index.html at the root",
+  );
+});
+
 test("a file too large to upload says so", async () => {
   const api = fakeApi(() => new Response(null, { status: 413 }));
   await expect(api.client.saveContent("p1", "a".repeat(64), new Uint8Array(3))).rejects.toThrow(

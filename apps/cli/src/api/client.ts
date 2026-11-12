@@ -1,3 +1,4 @@
+import * as v from "valibot";
 import { CliError } from "../cliError.ts";
 import {
   type PrototypeVersion,
@@ -58,6 +59,7 @@ export function createApiClient(session: Session): ApiClient {
   return {
     async me() {
       const response = await getMe(options);
+      if (response.status !== 200) throw refused("GET /me", response);
       return response.data.user;
     },
     async endSession() {
@@ -66,7 +68,7 @@ export function createApiClient(session: Session): ApiClient {
     },
     async listPrototypes() {
       const response = await listPrototypes(options);
-      if (response.status === 401) throw new CliError(signInAgain);
+      if (response.status !== 200) throw failure(response, "プロトタイプの一覧");
       return response.data.prototypes.map(({ id, name }) => ({ id, name }));
     },
     async listVersions(prototypeId) {
@@ -119,7 +121,30 @@ function failure(response: { status: number; data: unknown }, what: string): Cli
   return refused(what, response);
 }
 
+function badRequestIssues(data: unknown): v.InferOutput<typeof Issues> | null {
+  const bad = v.safeParse(BadRequest, data);
+  if (!bad.success) return null;
+  try {
+    const issues = v.safeParse(Issues, JSON.parse(bad.output.error.message));
+    return issues.success ? issues.output : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The API's answer to a body it can't take: a ZodError, whose message lists the problems. */
+const BadRequest = v.object({ error: v.object({ message: v.string() }) });
+
+const Issues = v.array(
+  v.object({ path: v.array(v.union([v.string(), v.number()])), message: v.string() }),
+);
+
 function refused(what: string, response: { status: number; data: unknown }): CliError {
+  const issues = response.status === 400 ? badRequestIssues(response.data) : null;
+  if (issues !== null) {
+    const problems = issues.map((issue) => `  ${issue.path.join(".")}: ${issue.message}`);
+    return new CliError([`${what}: API が受けませんでした。`, ...problems].join("\n"));
+  }
   return new CliError(
     `${what}: API が ${response.status} を返しました。${JSON.stringify(response.data) ?? ""}`,
   );

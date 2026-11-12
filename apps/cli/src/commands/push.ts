@@ -1,6 +1,12 @@
-import { log, outro, spinner } from "@clack/prompts";
-import { push as pushVersion } from "../sync.ts";
-import { fromHere, gessoCommand, shortCommit, signedInApi } from "../ui.ts";
+import { log, outro } from "@clack/prompts";
+import { type LeftOut, push as pushVersion } from "../sync.ts";
+import { fromHere, gessoCommand, progress, shortCommit, signedInApi } from "../ui.ts";
+
+const reasons: Record<LeftOut["reason"], string> = {
+  dot: "ドットで始まるもの・node_modules",
+  link: "リンク",
+  submodule: "サブモジュール",
+};
 
 export const push = gessoCommand({
   name: "push",
@@ -14,34 +20,36 @@ export const push = gessoCommand({
     },
     force: {
       type: "boolean",
-      description: "取ってきた版より新しい版があっても送る",
+      description: "取り込んだ版より新しい版があっても送る",
       default: false,
     },
   },
   async run(args) {
-    const progress = spinner();
-    progress.start("commit を送っています");
+    const running = progress("commit を送っています");
     const result = await pushVersion(await signedInApi(), fromHere(args.dir), {
       force: args.force,
     }).catch((error: unknown) => {
-      progress.error("送れませんでした");
+      running.error("送れませんでした");
       throw error;
     });
 
     if (result.kind === "unchanged") {
-      progress.stop(`版 ${result.version} と同じなので、版は作りませんでした`);
+      running.stop(`版 ${result.version} と同じなので、版は作りませんでした`);
     } else {
-      progress.stop(`版 ${result.version} を作りました`);
+      running.stop(`版 ${result.version} を作りました`);
       const { branch, commit } = result.source;
       log.message([
         `${branch ?? "(ブランチなし)"} ${shortCommit(commit)} から`,
         `${result.files} ファイル（新しく上げた中身 ${result.uploaded}）`,
       ]);
-      if (result.leftOut.length > 0) {
-        log.info(
-          `版に入れないファイル（ドットで始まるもの・node_modules）: ${result.leftOut.join(", ")}`,
-        );
-      }
+    }
+    if (result.leftOut.length > 0) {
+      log.info(
+        [
+          "版に入れないファイル:",
+          ...result.leftOut.map((file) => `  ${file.path}（${reasons[file.reason]}）`),
+        ].join("\n"),
+      );
     }
     if (result.uncommitted) {
       log.warn("commit していない変更があります。送ったのは commit した分だけです");

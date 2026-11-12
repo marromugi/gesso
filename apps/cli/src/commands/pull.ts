@@ -1,16 +1,16 @@
-import { log, outro, spinner } from "@clack/prompts";
+import { log, outro } from "@clack/prompts";
 import { CliError } from "../cliError.ts";
 import { pull as pullVersion } from "../sync.ts";
-import { fromHere, gessoCommand, signedInApi } from "../ui.ts";
+import { fromHere, gessoCommand, progress, signedInApi } from "../ui.ts";
 
 export const pull = gessoCommand({
   name: "pull",
-  description: "版を git のリポジトリに取ってきて commit する",
+  description: "版を取ってきて、git のリポジトリに取り込む（git pull のように）",
   args: {
     id: { type: "positional", description: "プロトタイプの ID", required: true },
     dir: {
       type: "positional",
-      description: "取ってくるフォルダー（空か、このプロトタイプのリポジトリ）",
+      description: "取り込むフォルダー（空か、このプロトタイプのリポジトリ）",
       required: false,
       default: ".",
     },
@@ -19,29 +19,42 @@ export const pull = gessoCommand({
   async run(args) {
     const dir = fromHere(args.dir);
     const number = args.version === undefined ? undefined : versionNumber(args.version);
-    const progress = spinner();
-    progress.start("版を取ってきています");
+    const running = progress("版を取ってきています");
     const result = await pullVersion(await signedInApi(), args.id, dir, { number }).catch(
       (error: unknown) => {
-        progress.error("取ってこられませんでした");
+        running.error("取ってこられませんでした");
         throw error;
       },
     );
-    progress.stop(
-      result.version === 0 ? "まだ版がありません" : `版 ${result.version} を取ってきました`,
-    );
 
-    if (result.initialized) log.info(`${dir} を git のリポジトリにしました`);
-    if (result.version === 0) {
-      outro("ファイルを置いて commit し、`pnpm gesso push` すると版 1 ができます");
+    if (result.kind === "upToDate") {
+      running.stop(`版 ${result.version} は取り込み済みです`);
+      outro("変わりなし");
       return;
     }
-    log.message([
-      `${result.written} ファイル（消したもの ${result.deleted}）`,
-      result.committed
-        ? `「gesso 版 ${result.version}」として commit しました`
-        : "変わったファイルはありません",
-    ]);
+    if (result.kind === "noVersion") {
+      running.stop("まだ版がありません");
+      if (result.initialized) log.info(`${dir} を git のリポジトリにしました`);
+      outro("index.html を置いて commit し、`pnpm gesso push` すると版 1 ができます");
+      return;
+    }
+    running.stop(`版 ${result.version} を取ってきました（${result.files} ファイル）`);
+    if (result.initialized) log.info(`${dir} を git のリポジトリにしました`);
+    if (result.merge.kind === "conflict") {
+      log.warn(
+        [
+          `手元の commit とぶつかりました: ${result.merge.paths.join(", ")}`,
+          "git で直して commit してから、`pnpm gesso push` してください",
+        ].join("\n"),
+      );
+      outro(`版 ${result.version} を取り込み中（ぶつかりあり）`);
+      return;
+    }
+    log.message(
+      result.merge.kind === "fastForward"
+        ? `「gesso 版 ${result.version}」の commit に進めました`
+        : `手元の commit と「gesso 版 ${result.version}」を merge しました`,
+    );
     outro(dir);
   },
 });
