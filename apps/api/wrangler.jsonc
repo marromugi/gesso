@@ -21,6 +21,8 @@
       "migrations_dir": "migrations",
     },
   ],
+  // Prototype files by content, under `prototypes/<prototypeId>/<sha-256>` (src/prototypes).
+  "r2_buckets": [{ "binding": "PROTOTYPE_FILES", "bucket_name": "gesso-prototype-files" }],
   // Per client IP, for POST /auth/sign-in/* (src/app.ts).
   "ratelimits": [
     {

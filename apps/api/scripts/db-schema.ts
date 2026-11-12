@@ -45,6 +45,10 @@ for (const table of tables) {
     problems.push(`table ${name} is in schema.ts but no migration creates it`);
     continue;
   }
+  // A key over several columns is declared on the table, not on its columns.
+  const keyColumns = new Set(
+    config.primaryKeys.flatMap((key) => key.columns.map((column) => column.name)),
+  );
   same(
     `columns of ${name}`,
     columns
@@ -59,8 +63,8 @@ for (const table of tables) {
       .map((column) => ({
         name: column.name,
         type: column.getSQLType().toLowerCase(),
-        notNull: column.notNull || column.primary,
-        primaryKey: column.primary,
+        notNull: column.notNull || column.primary || keyColumns.has(column.name),
+        primaryKey: column.primary || keyColumns.has(column.name),
       }))
       .toSorted(byName),
   );

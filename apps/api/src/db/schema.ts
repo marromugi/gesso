@@ -1,4 +1,11 @@
-import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { user } from "./authTables.ts";
 
 /**
@@ -21,4 +28,53 @@ export const prototype = sqliteTable(
     updatedAt: text("updatedAt").notNull(),
   },
   (table) => [index("prototype_ownerId_createdAt_idx").on(table.ownerId, table.createdAt)],
+);
+
+/**
+ * File content uploaded for a prototype, kept in R2 under `prototypes/<prototypeId>/<hash>`.
+ * Versions refer to it by hash, so content that doesn't change between versions is stored once.
+ */
+export const prototypeFileContent = sqliteTable(
+  "prototypeFileContent",
+  {
+    prototypeId: text("prototypeId")
+      .notNull()
+      .references(() => prototype.id, { onDelete: "cascade" }),
+    /** SHA-256 of the content, as lowercase hex. */
+    hash: text("hash").notNull(),
+    /** In bytes. */
+    size: integer("size").notNull(),
+    createdAt: text("createdAt").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.prototypeId, table.hash] })],
+);
+
+/** A snapshot of a prototype's files. Never changed once made. */
+export const prototypeVersion = sqliteTable(
+  "prototypeVersion",
+  {
+    id: text("id").primaryKey(),
+    prototypeId: text("prototypeId")
+      .notNull()
+      .references(() => prototype.id, { onDelete: "cascade" }),
+    /** 1 for a prototype's first version, then one more for each version after. */
+    number: integer("number").notNull(),
+    createdAt: text("createdAt").notNull(),
+  },
+  (table) => [
+    uniqueIndex("prototypeVersion_prototypeId_number_idx").on(table.prototypeId, table.number),
+  ],
+);
+
+/** One file of a version: where it sits and which content it has. */
+export const prototypeVersionFile = sqliteTable(
+  "prototypeVersionFile",
+  {
+    versionId: text("versionId")
+      .notNull()
+      .references(() => prototypeVersion.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+    hash: text("hash").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.versionId, table.path] })],
 );

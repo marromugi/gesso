@@ -22,8 +22,11 @@ import type {
   Health,
   Me,
   NewPrototype,
+  NewPrototypeVersion,
   Prototype,
-  PrototypeList
+  PrototypeList,
+  PrototypeVersionDetail,
+  PrototypeVersionList
 } from '../../api/generated/gesso';
 
 
@@ -34,6 +37,14 @@ export const getGetMeResponseMock = (overrideResponse: Partial<Extract<Me, objec
 export const getListPrototypesResponseMock = (overrideResponse: Partial<Extract<PrototypeList, object>> = {}): PrototypeList => ({prototypes: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), updatedAt: faker.string.alpha({length: {min: 10, max: 20}})})), ...overrideResponse})
 
 export const getCreatePrototypeResponseMock = (overrideResponse: Partial<Extract<Prototype, object>> = {}): Prototype => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), updatedAt: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
+
+export const getGetPrototypeFileContentResponseMock = (): Blob => (new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]))
+
+export const getListPrototypeVersionsResponseMock = (overrideResponse: Partial<Extract<PrototypeVersionList, object>> = {}): PrototypeVersionList => ({versions: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}})})), ...overrideResponse})
+
+export const getCreatePrototypeVersionResponseMock = (): PrototypeVersionDetail => ({...{number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}})},...{files: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({path: faker.string.alpha({length: {min: 10, max: 20}}), hash: faker.helpers.fromRegExp("^[0-9a-f]{64}$"), size: faker.number.int()}))},})
+
+export const getGetPrototypeVersionResponseMock = (): PrototypeVersionDetail => ({...{number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}})},...{files: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({path: faker.string.alpha({length: {min: 10, max: 20}}), hash: faker.helpers.fromRegExp("^[0-9a-f]{64}$"), size: faker.number.int()}))},})
 
 
 export const getGetHealthMockHandler = (overrideResponse?: Health | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Health> | Health), options?: RequestHandlerOptions) => {
@@ -83,9 +94,73 @@ export const getCreatePrototypeMockHandler = (overrideResponse?: Prototype | ((i
       })
   }, options)
 }
+
+export const getPutPrototypeFileContentMockHandler = (overrideResponse?: void | ((info: Parameters<HttpResponseResolver<{ prototypeId: string; hash: string }, Blob>>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.put<{ prototypeId: string; hash: string }, Blob>('*/prototypes/:prototypeId/files/:hash', async (info: Parameters<HttpResponseResolver<{ prototypeId: string; hash: string }, Blob>>[0]) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+
+    return new HttpResponse(null,
+      { status: 204
+      })
+  }, options)
+}
+
+export const getGetPrototypeFileContentMockHandler = (overrideResponse?: Blob | ((info: Parameters<HttpResponseResolver<{ prototypeId: string; hash: string }>>[0]) => Promise<Blob> | Blob), options?: RequestHandlerOptions) => {
+  return http.get<{ prototypeId: string; hash: string }>('*/prototypes/:prototypeId/files/:hash', async (info: Parameters<HttpResponseResolver<{ prototypeId: string; hash: string }>>[0]) => {
+
+  const binaryBody = overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetPrototypeFileContentResponseMock();
+    return new HttpResponse(binaryBody,
+      { status: 200,
+        headers: { 'Content-Type': 'application/octet-stream' }
+      })
+  }, options)
+}
+
+export const getListPrototypeVersionsMockHandler = (overrideResponse?: PrototypeVersionList | ((info: Parameters<HttpResponseResolver<{ prototypeId: string }>>[0]) => Promise<PrototypeVersionList> | PrototypeVersionList), options?: RequestHandlerOptions) => {
+  return http.get<{ prototypeId: string }>('*/prototypes/:prototypeId/versions', async (info: Parameters<HttpResponseResolver<{ prototypeId: string }>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListPrototypeVersionsResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
+
+export const getCreatePrototypeVersionMockHandler = (overrideResponse?: PrototypeVersionDetail | ((info: Parameters<HttpResponseResolver<{ prototypeId: string }, NewPrototypeVersion>>[0]) => Promise<PrototypeVersionDetail> | PrototypeVersionDetail), options?: RequestHandlerOptions) => {
+  return http.post<{ prototypeId: string }, NewPrototypeVersion>('*/prototypes/:prototypeId/versions', async (info: Parameters<HttpResponseResolver<{ prototypeId: string }, NewPrototypeVersion>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getCreatePrototypeVersionResponseMock(),
+      { status: 201
+      })
+  }, options)
+}
+
+export const getGetPrototypeVersionMockHandler = (overrideResponse?: PrototypeVersionDetail | ((info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }>>[0]) => Promise<PrototypeVersionDetail> | PrototypeVersionDetail), options?: RequestHandlerOptions) => {
+  return http.get<{ prototypeId: string; number: string }>('*/prototypes/:prototypeId/versions/:number', async (info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetPrototypeVersionResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
 export const getGessoAPIMock = () => [
   getGetHealthMockHandler(),
   getGetMeMockHandler(),
   getListPrototypesMockHandler(),
-  getCreatePrototypeMockHandler()
+  getCreatePrototypeMockHandler(),
+  getPutPrototypeFileContentMockHandler(),
+  getGetPrototypeFileContentMockHandler(),
+  getListPrototypeVersionsMockHandler(),
+  getCreatePrototypeVersionMockHandler(),
+  getGetPrototypeVersionMockHandler()
 ]

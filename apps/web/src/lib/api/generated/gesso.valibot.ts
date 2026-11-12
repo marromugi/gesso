@@ -41,3 +41,67 @@ export const CreatePrototypeResponse = v.object({
   createdAt: v.string(),
   updatedAt: v.string()
 })
+
+
+export const PutPrototypeFileContentParams = v.object({
+  prototypeId: v.string(),
+  hash: v.pipe(v.string(), v.regex(new RegExp('^[0-9a-f]{64}$')), v.description('SHA-256 as lowercase hex.'))
+})
+
+
+export const GetPrototypeFileContentParams = v.object({
+  prototypeId: v.string(),
+  hash: v.pipe(v.string(), v.regex(new RegExp('^[0-9a-f]{64}$')), v.description('SHA-256 as lowercase hex.'))
+})
+
+
+export const ListPrototypeVersionsParams = v.object({
+  prototypeId: v.string()
+})
+
+export const ListPrototypeVersionsResponse = v.object({
+  versions: v.array(v.object({
+  number: v.pipe(v.number(), v.integer()),
+  createdAt: v.string()
+}))
+})
+
+
+export const CreatePrototypeVersionParams = v.object({
+  prototypeId: v.string()
+})
+
+export const CreatePrototypeVersionBody = v.object({
+  files: v.array(v.object({
+  path: v.pipe(v.string(), v.check((value) => value.length <= 512 || (value.length <= 1024 && [...value].length <= 512), 'Invalid length: Expected <=512')),
+  hash: v.pipe(v.string(), v.regex(new RegExp('^[0-9a-f]{64}$')), v.description('SHA-256 as lowercase hex.'))
+}))
+})
+
+export const CreatePrototypeVersionResponse = v.intersect([v.object({
+  number: v.pipe(v.number(), v.integer()),
+  createdAt: v.string()
+}), v.object({
+  files: v.array(v.object({
+  path: v.string(),
+  hash: v.pipe(v.string(), v.regex(new RegExp('^[0-9a-f]{64}$')), v.description('SHA-256 as lowercase hex.')),
+  size: v.pipe(v.number(), v.integer())
+}))
+})])
+
+
+export const GetPrototypeVersionParams = v.object({
+  prototypeId: v.string(),
+  number: v.pipe(v.number(), v.integer(), v.minValue(1))
+})
+
+export const GetPrototypeVersionResponse = v.intersect([v.object({
+  number: v.pipe(v.number(), v.integer()),
+  createdAt: v.string()
+}), v.object({
+  files: v.array(v.object({
+  path: v.string(),
+  hash: v.pipe(v.string(), v.regex(new RegExp('^[0-9a-f]{64}$')), v.description('SHA-256 as lowercase hex.')),
+  size: v.pipe(v.number(), v.integer())
+}))
+})])
