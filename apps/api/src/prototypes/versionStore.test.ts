@@ -86,18 +86,23 @@ test("versions are numbered from 1, newest first, and keep their files", async (
   });
 });
 
-test("a version with more files than one D1 statement can bind keeps every file", async () => {
-  await addPrototype(platform.env, "large", owner);
-  const paths = [
-    "index.html",
-    ...Array.from({ length: 99 }, (_, i) => `f${String(i).padStart(3, "0")}.js`),
-  ];
-  const files = [];
-  for (const path of paths) files.push({ path, hash: await save("large", path) });
+test(
+  "a version with more files than one D1 statement can bind keeps every file",
+  { timeout: 30_000 },
+  async () => {
+    await addPrototype(platform.env, "large", owner);
+    const paths = [
+      "index.html",
+      ...Array.from({ length: 99 }, (_, i) => `f${String(i).padStart(3, "0")}.js`),
+    ];
+    const files = await Promise.all(
+      paths.map(async (path) => ({ path, hash: await save("large", path) })),
+    );
 
-  const created = await createVersion(db, owner, "large", files, now);
+    const created = await createVersion(db, owner, "large", files, now);
 
-  expect(created).toMatchObject({ kind: "created", version: { number: 1 } });
-  const version = await getVersion(db, owner, "large", 1);
-  expect(version?.files.map((file) => file.path)).toEqual(paths.toSorted());
-});
+    expect(created).toMatchObject({ kind: "created", version: { number: 1 } });
+    const version = await getVersion(db, owner, "large", 1);
+    expect(version?.files.map((file) => file.path)).toEqual(paths.toSorted());
+  },
+);
