@@ -40,7 +40,7 @@ pnpm gesso logout                        # gesso のセッションを終え、�
 
 ## テンプレート
 
-`new` は、版のないプロトタイプのフォルダーを `pull` と同じく用意し、テンプレートを置いて「gesso テンプレート 2d」として commit する。そのまま `push` すると版 1 になる。テンプレートは `templates/`（2D は Canvas だけ、3D は three.js を import map で読む）で、どちらにも同じ土台（`src/gesso/runtime.js`）がある。
+`new` は、版のないプロトタイプのフォルダーを `pull` と同じく用意し、テンプレートを置いて「gesso テンプレート 2d」として commit する。そのまま `push` すると版 1 になる。テンプレートは `templates/`（2D は Canvas だけ。3D は three.js と Rapier を import map で読み、Blender で作った地形 `assets/level.glb` を当たり判定つきで歩ける）で、どちらにも同じ土台（`src/gesso/runtime.js`）がある。
 
 - `controls.json` に操作（キーとその名前）を宣言する。
 - 1 秒に 60 回の決まった間隔で進むループと、シードを決められる乱数。

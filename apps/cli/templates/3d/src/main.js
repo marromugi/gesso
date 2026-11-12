@@ -1,7 +1,10 @@
-// Draws the game with three.js and runs it (see CLAUDE.md). The rules are in game.js.
+// Loads the level, draws the game with three.js and runs it (see CLAUDE.md). The rules are in
+// game.js.
 import * as THREE from "three";
+import { loadLevel } from "./gesso/level.js";
+import { createPhysics } from "./gesso/physics.js";
 import { startGame } from "./gesso/runtime.js";
-import { floorSize, init, size, update } from "./game.js";
+import { character, createRules } from "./game.js";
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
@@ -9,23 +12,22 @@ document.body.append(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#1d2330");
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
-camera.position.set(0, 8, 12);
-camera.lookAt(0, 0, 0);
-scene.add(new THREE.HemisphereLight("#ffffff", "#3a4458", 2));
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
+scene.add(new THREE.HemisphereLight("#ffffff", "#3a4458", 1.5));
+const sun = new THREE.DirectionalLight("#ffffff", 2);
+sun.position.set(5, 10, 7);
+scene.add(sun);
 
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(floorSize, floorSize),
-  new THREE.MeshStandardMaterial({ color: "#3a4458" }),
-);
-floor.rotation.x = -Math.PI / 2;
-scene.add(floor);
+const level = await loadLevel("assets/level.glb");
+scene.add(level.scene);
+const physics = await createPhysics(level.shapes, character);
+if (physics.skipped.length > 0) console.warn("these could not be made solid:", physics.skipped);
 
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(size, size, size),
+const player = new THREE.Mesh(
+  new THREE.CapsuleGeometry(character.radius, character.halfHeight * 2),
   new THREE.MeshStandardMaterial({ color: "#f2c94c" }),
 );
-scene.add(cube);
+scene.add(player);
 
 function fit() {
   renderer.setSize(innerWidth, innerHeight);
@@ -36,10 +38,12 @@ addEventListener("resize", fit);
 fit();
 
 await startGame({
-  init,
-  update,
+  ...createRules(physics),
   render(state) {
-    cube.position.set(state.player.x, state.player.y, state.player.z);
+    const { x, y, z } = state.player;
+    player.position.set(x, y, z);
+    camera.position.set(x, y + 6, z + 10);
+    camera.lookAt(x, y, z);
     renderer.render(scene, camera);
   },
 });

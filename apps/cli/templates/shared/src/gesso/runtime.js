@@ -192,6 +192,12 @@ function showError(message) {
   document.body.append(box);
 }
 
+// An error before the game starts (a library that won't load, no WebGL) is shown on the page too.
+if (typeof window !== "undefined") {
+  addEventListener("error", (event) => showError(String(event.error ?? event.message)));
+  addEventListener("unhandledrejection", (event) => showError(String(event.reason)));
+}
+
 /**
  * Runs the game in the page: keys from `controls.json`, a fixed step at 60 per second, and
  * `window.gesso` for whoever drives it (Claude Code, a test). The page's URL may say
@@ -200,15 +206,9 @@ function showError(message) {
  * @param {GameDefinition<State>} definition
  */
 export async function startGame(definition) {
-  let controls;
-  try {
-    const response = await fetch(new URL("controls.json", document.baseURI));
-    if (!response.ok) throw new Error(`controls.json: ${response.status}`);
-    controls = parseControls(await response.json());
-  } catch (error) {
-    showError(String(error));
-    throw error;
-  }
+  const response = await fetch(new URL("controls.json", document.baseURI));
+  if (!response.ok) throw new Error(`controls.json: ${response.status}`);
+  const controls = parseControls(await response.json());
   const params = new URLSearchParams(location.search);
   const seedParam = Number.parseInt(params.get("seed") ?? "1", 10);
   const game = createGame(definition, controls, {

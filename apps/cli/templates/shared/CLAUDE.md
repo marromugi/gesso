@@ -28,11 +28,28 @@ gesso の CLI は、gesso のリポジトリで `pnpm gesso` として動く。�
   { "format": 1, "actions": [{ "id": "jump", "label": "ジャンプ", "keys": ["Space"] }] }
   ```
 
-- `src/game.js`: ゲームの決まり。ブラウザも描画も使わないので、そのまま動かして確かめられる。
+- `src/game.js`: ゲームの決まり。ブラウザも描画も使わないので、そのまま動かして確かめられる（3D は当たり判定 `physics` を受け取る。下の「3D の地形と当たり判定」）。
   - `init(random)`: 最初の状態を返す。状態は JSON にできる値だけにする（`gesso.getState()` で読めるように）。
   - `update(state, input, dt, random)`: 1 秒に 60 回、決まった `dt` で状態を進める。入力は `input.isDown("jump")`（押している。そのステップの間に押して離した短い押し方も含む）と `input.wasPressed("jump")`（このステップで押し始めた）。`controls.json` にない操作を読むとエラーになる。乱数は `Math.random()` でなく `random()` を使う（シードで同じ動きを再現できるように）。
 - `src/main.js`: 描く（`render(state)`、状態は変えない）と、`startGame({ init, update, render })` で動かす。
-- `src/gesso/runtime.js`: ループ・入力・デバッグの口。ふつうは変えない。ゲームの中でエラーが起きると、止めてページに出す。
+- `src/gesso/runtime.js`: ループ・入力・デバッグの口。ふつうは変えない。ゲームの中でエラーが起きると、止めてページに出す。始まる前のエラー（ライブラリが読めない、WebGL が使えない）もページに出す。
+
+## 3D の地形と当たり判定（3D のテンプレート）
+
+地形は Blender で作り、glTF（`assets/level.glb`）にして読む。当たり判定は Rapier（`@dimforge/rapier3d-compat`）。
+
+- `assets/level.py`: 地形を作って `assets/level.glb` に書き出す Blender のスクリプト。地形を変えるときはこれを直して流し、`.glb` と一緒に commit する。
+
+  ```sh
+  /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup --python assets/level.py -- assets/level.glb
+  ```
+
+- 固い物の印は、Blender のカスタムプロパティ `collider`。`"convex"` はその形を包む凸の形で、`"mesh"` は形そのまま（輪やくぼみのような凹んだ形）でぶつかる。名前が `-col` で終わる物は、ぶつかるが描かない（細かい物に、単純な当たり判定を添えるとき）。印のない物は描くだけ。書き出しでは `export_extras=True` にする（印が glTF の `extras` に入る）。
+- Blender は z が上、ゲームは y が上（書き出しで変わる）。Blender の (x, y, z) は、ゲームでは (x, z, -y)。
+- `src/gesso/level.js`: `loadLevel(url)` が、シーンに足す物と固い形を返す。
+- `src/gesso/physics.js`: `createPhysics(shapes, character)` が、地形を固くしてカプセルのキャラクターを動かす `moveCharacter(from, delta)` を返す。行きたい分だけ動こうとして、ぶつかったら面に沿って滑り、坂（50° まで）と段（0.3 まで）は登る。地形は動かないので、答えは引数だけで決まり、状態は JSON のまま。
+- `src/game.js` の `createRules(physics)` が `{ init, update }` を返す。Rapier は CDN から読むので、3D の決まりは serve したページの `window.gesso` で確かめる。
+- `physics.js` が扱うのは、動かない地形と 1 つのキャラクターだけ。押せる箱のように物理で動く物を足すときは `physics.js` を広げ、その位置と速さも状態に入れる（状態だけで、その時の様子が決まるように）。
 
 ## デバッグ
 

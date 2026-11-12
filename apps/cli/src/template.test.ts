@@ -5,7 +5,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest
 import { git } from "./git/run.ts";
 import { createGame, parseControls } from "../templates/shared/src/gesso/runtime.js";
 import { push } from "./sync.ts";
-import { newFromTemplate, templateFiles, templateNames } from "./template.ts";
+import { createPhysics } from "../templates/3d/src/gesso/physics.js";
+import { type TemplateName, newFromTemplate, templateFiles, templateNames } from "./template.ts";
 import { fakeApi, isolateGitSettings, prototypeId } from "./testing/fakeApi.ts";
 
 /** Where the templates are, as `templateFiles` reads them. */
@@ -70,12 +71,27 @@ test("a prototype with no version starts from a template, committed, and pushes 
   ]);
 });
 
+/** The `init` and `update` of template `name`'s game; the 3d one's on flat ground. */
+async function rulesOf(name: TemplateName) {
+  const game = await import(join(templatesDir, name, "src", "game.js"));
+  if (name === "2d") return game;
+  const ground = {
+    name: "Ground",
+    kind: "convex" as const,
+    vertices: [
+      -50, -1, -50, 50, -1, -50, -50, -1, 50, 50, -1, 50, -50, 0, -50, 50, 0, -50, -50, 0, 50, 50,
+      0, 50,
+    ],
+    indices: [] as number[],
+  };
+  return game.createRules(await createPhysics([ground], game.character));
+}
+
 test.each(templateNames)("the %s template's game runs with each of its controls", async (name) => {
   const controls = parseControls(
     JSON.parse(await readFile(join(templatesDir, name, "controls.json"), "utf8")),
   );
-  const { init, update } = await import(join(templatesDir, name, "src", "game.js"));
-  const game = createGame({ init, update }, controls, { seed: 1 });
+  const game = createGame(await rulesOf(name), controls, { seed: 1 });
   const first = game.state();
 
   for (const action of controls.actions) {

@@ -17,6 +17,7 @@
     "valibot": "^1.5.0"
   },
   "devDependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0",
     "@types/node": "^24.19.2",
     "orval": "^8.47.0",
     "typescript": "^7.0.2",
