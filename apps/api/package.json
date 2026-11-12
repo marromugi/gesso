@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./openapi.json": "./openapi.json"
+    "./openapi.json": "./openapi.json",
+    "./contentType": "./src/play/contentType.ts"
   },
   "scripts": {
     "postinstall": "WRANGLER_SEND_METRICS=false wrangler types --strict-vars=false",

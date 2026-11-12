@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { createGame, seededRandom } from "../templates/shared/src/gesso/runtime.js";
+import { createGame, parseControls, seededRandom } from "../templates/shared/src/gesso/runtime.js";
 
 const controls = {
   format: 1 as const,
@@ -71,4 +71,74 @@ test("the state handed out is a copy", () => {
   const state = game.state() as { frames: number };
   state.frames = 99;
   expect(game.state()).toMatchObject({ frames: 0 });
+});
+
+/** A game that records whether `jump` is held on each step. */
+function heldRecorder() {
+  const seen: boolean[] = [];
+  const game = createGame(
+    {
+      init: () => ({}),
+      update: (_: object, input: { isDown: (a: string) => boolean }) => {
+        seen.push(input.isDown("jump"));
+      },
+    },
+    controls,
+    { seed: 1 },
+  );
+  return { game, seen };
+}
+
+test("a tap let go of before the next step still moves for that step", () => {
+  const { game, seen } = heldRecorder();
+  game.press("jump");
+  game.release("jump");
+  game.tick();
+  game.tick();
+  expect(seen).toEqual([true, false]);
+});
+
+test("an action held by two keys stays held until both let go, or the page loses the keyboard", () => {
+  const { game, seen } = heldRecorder();
+  game.press("jump", "Space");
+  game.press("jump", "ArrowUp");
+  game.release("jump", "ArrowUp");
+  game.tick();
+  game.release("jump", "Space");
+  game.tick();
+  game.press("jump", "Space", { quiet: true });
+  game.releaseAll();
+  game.tick();
+  expect(seen).toEqual([true, false, false]);
+});
+
+test("a key held while paused is not taken for a fresh press", () => {
+  const game = counter();
+  game.press("jump", "Space", { quiet: true });
+  game.tick();
+  expect(game.state()).toMatchObject({ jumps: 0 });
+});
+
+test("controls.json is checked, and so is every action the game reads", () => {
+  expect(() => parseControls({ format: 2, actions: [] })).toThrow(/format/);
+  expect(() =>
+    parseControls({
+      format: 1,
+      actions: [
+        { id: "a", label: "A", keys: ["Space"] },
+        { id: "b", label: "B", keys: ["Space"] },
+      ],
+    }),
+  ).toThrow(/Space/);
+  const game = createGame(
+    {
+      init: () => ({}),
+      update: (_: object, input: { isDown: (a: string) => boolean }) => {
+        input.isDown("dash");
+      },
+    },
+    controls,
+    { seed: 1 },
+  );
+  expect(() => game.tick()).toThrow(/dash/);
 });

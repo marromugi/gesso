@@ -191,12 +191,22 @@ function repoAt(dir: string): Repo {
       }
     },
     async commitAsGesso(paths, message) {
-      await run(["add", "--", ...paths]);
+      // The person's ignore rules and hooks are theirs, not for what gesso commits.
+      await run(["add", "--force", "--", ...paths]);
       await run(
-        ["commit", "--quiet", "--no-verify", "--no-gpg-sign", "-m", message, "--", ...paths],
-        {
-          env: gessoIdentity,
-        },
+        [
+          "-c",
+          "core.hooksPath=/dev/null",
+          "commit",
+          "--quiet",
+          "--no-verify",
+          "--no-gpg-sign",
+          "-m",
+          message,
+          "--",
+          ...paths,
+        ],
+        { env: gessoIdentity },
       );
     },
     async mergeIn(commit, message) {

@@ -3,9 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
 import { git } from "./git/run.ts";
+import { createGame, parseControls } from "../templates/shared/src/gesso/runtime.js";
 import { push } from "./sync.ts";
 import { newFromTemplate, templateFiles, templateNames } from "./template.ts";
 import { fakeApi, isolateGitSettings, prototypeId } from "./testing/fakeApi.ts";
+
+/** Where the templates are, as `templateFiles` reads them. */
+const templatesDir = join(import.meta.dirname, "..", "templates");
 
 let undoGitSettings: () => Promise<void>;
 let dir: string;
@@ -60,15 +64,35 @@ test("a prototype with no version starts from a template, committed, and pushes 
     "CLAUDE.md",
     "controls.json",
     "index.html",
+    "src/game.js",
     "src/gesso/runtime.js",
     "src/main.js",
   ]);
 });
 
+test.each(templateNames)("the %s template's game runs with each of its controls", async (name) => {
+  const controls = parseControls(
+    JSON.parse(await readFile(join(templatesDir, name, "controls.json"), "utf8")),
+  );
+  const { init, update } = await import(join(templatesDir, name, "src", "game.js"));
+  const game = createGame({ init, update }, controls, { seed: 1 });
+  const first = game.state();
+
+  for (const action of controls.actions) {
+    game.press(action.id);
+    for (let i = 0; i < 10; i += 1) game.tick();
+    game.release(action.id);
+  }
+
+  // Every action does something, and the state stays plain data.
+  expect(game.state()).not.toEqual(first);
+  expect(JSON.parse(JSON.stringify(game.state()))).toEqual(game.state());
+});
+
 test("a prototype with versions, or a file in the way, is refused and nothing changes", async () => {
   const api = fakeApi();
   await writeFile(join(dir, "index.html"), "<h1>mine</h1>");
-  await expect(newFromTemplate(api.client, prototypeId, dir, "3d")).rejects.toThrow(/index\.html/);
+  await expect(newFromTemplate(api.client, prototypeId, dir, "3d")).rejects.toThrow(/空ではない/);
   expect(await readdir(dir)).toEqual(["index.html"]);
   expect(await readFile(join(dir, "index.html"), "utf8")).toBe("<h1>mine</h1>");
 

@@ -1,6 +1,6 @@
 import { log } from "@clack/prompts";
 import { CliError } from "../cliError.ts";
-import { serveFolder } from "../serve.ts";
+import { serveFolder, servedPath } from "../serve.ts";
 import { fromHere, gessoCommand } from "../ui.ts";
 
 /** Where `serve` listens unless told otherwise. */
@@ -25,11 +25,15 @@ export const serve = gessoCommand({
     }
     const dir = fromHere(args.dir);
     await serveFolder(dir, port).catch((cause: unknown) => {
+      if (cause instanceof CliError) throw cause;
       throw new CliError(`${port} 番で配れませんでした（使われているかもしれません）。`, { cause });
     });
-    log.success(`http://localhost:${port}/ で ${dir} を配っています`);
+    log.success(`http://127.0.0.1:${port}${servedPath} で ${dir} を配っています`);
     log.message(
-      "?seed=1&paused を付けると、決まったシードで止まった状態から始まります。止めるには Ctrl+C",
+      [
+        "gesso と同じく、版に入るファイルだけを、そのパスの下で配ります（/ で始まるパスは届きません）",
+        "?seed=1&paused を付けると、決まったシードで止まった状態から始まります。止めるには Ctrl+C",
+      ].join("\n"),
     );
   },
 });

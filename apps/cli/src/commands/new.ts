@@ -1,7 +1,7 @@
 import { log, outro } from "@clack/prompts";
 import { CliError } from "../cliError.ts";
 import { isTemplateName, newFromTemplate, templateNames } from "../template.ts";
-import { fromHere, gessoCommand, progress, signedInApi } from "../ui.ts";
+import { fromHere, gessoCommand, gessoRepository, progress, signedInApi } from "../ui.ts";
 
 export const create = gessoCommand({
   name: "new",
@@ -33,10 +33,16 @@ export const create = gessoCommand({
       },
     );
     running.stop(`${args.template} のテンプレートを置きました（${result.files} ファイル）`);
-    log.message([
-      "CLAUDE.md に、決まりとデバッグのしかたがあります",
-      "`pnpm gesso serve` で手元で遊べ、`pnpm gesso push` で版 1 になります",
-    ]);
+    // Commands with the paths filled in: CLAUDE.md can't know where gesso is on this machine.
+    const gesso = `pnpm --dir ${gessoRepository} gesso`;
+    log.message(
+      [
+        "CLAUDE.md に、決まりとデバッグのしかたがあります。このフォルダーからは:",
+        `  ${gesso} serve .   手元で遊ぶ`,
+        `  ${gesso} push .    commit したものを版にする`,
+        `  ${gesso} notes     遊んだ人のメモを読む`,
+      ].join("\n"),
+    );
     outro(dir);
   },
 });

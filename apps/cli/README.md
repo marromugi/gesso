@@ -6,11 +6,11 @@
 pnpm gesso login                         # ブラウザで承認してサインインする
 pnpm gesso list                          # 自分のプロトタイプの ID と名前
 pnpm gesso versions <ID>                 # プロトタイプの版（新しい順、元の commit つき）
-pnpm gesso notes <ID>                    # メモのある版のメモ（新しい順）
+pnpm gesso notes [<ID>]                  # メモのある版のメモ（新しい順。ID を省くと、今いるリポジトリのプロトタイプ）
 pnpm gesso notes <ID> --version 3        # 版 3 のメモ
 pnpm gesso new <ID> <dir> --template 2d  # 版のないプロトタイプを 2D（Canvas）か 3D（three.js）のテンプレートから始める
 pnpm gesso pull <ID> <dir>               # いちばん新しい版を <dir> の git に取り込む
-pnpm gesso serve <dir>                   # <dir> を http://localhost:4173/ で配る（手元で遊んで確かめる）
+pnpm gesso serve <dir>                   # <dir> を http://127.0.0.1:4173/play/ で、gesso と同じ配り方で配る（手元で遊んで確かめる）
 pnpm gesso pull <ID> <dir> --version 3   # 版 3 を取ってくる
 pnpm gesso push <dir>                    # <dir> の最新の commit を次の版として送る
 pnpm gesso logout                        # gesso のセッションを終え、サインインした情報を消す
@@ -46,7 +46,7 @@ pnpm gesso logout                        # gesso のセッションを終え、�
 - 1 秒に 60 回の決まった間隔で進むループと、シードを決められる乱数。
 - ページの `window.gesso` から、状態を読む・操作を押す・止める・コマ送りする・シードを変えてやり直す。
 
-決まりとデバッグのしかたは、テンプレートの `CLAUDE.md` にあり、Claude Code はそのフォルダーで読む。
+決まりとデバッグのしかたは、テンプレートの `CLAUDE.md` にあり、Claude Code はそのフォルダーで読む。`new` は空のフォルダー（かまだないフォルダー）にだけ置き、続けて打つコマンドを gesso のリポジトリのパスを埋めて出す。
 
 ## メモ
 
