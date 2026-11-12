@@ -20,6 +20,7 @@
     "codegen": {
       "dependsOn": ["^openapi"],
       "outputs": [
+        "src/generated/**",
         "src/lib/api/generated/**",
         "src/lib/apiMocks/generated/**",
         ".storybook/public/mockServiceWorker.js",

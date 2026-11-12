@@ -105,9 +105,25 @@ export interface HashMismatch {
   actual: string;
 }
 
+export interface VersionSource {
+  /**
+     * The git commit, as SHA-1 or SHA-256 hex.
+     * @pattern ^(?:[0-9a-f]{40}|[0-9a-f]{64})$
+     */
+  commit: string;
+  /**
+     * The branch the commit was on; `null` when detached.
+     * @minLength 1
+     * @maxLength 255
+     * @nullable
+     */
+  branch: string | null;
+}
+
 export interface PrototypeVersion {
   number: number;
   createdAt: string;
+  source: VersionSource | null;
 }
 
 export interface PrototypeVersionList {
@@ -153,6 +169,7 @@ export type NewPrototypeVersionFilesItem = {
 
 export interface NewPrototypeVersion {
   files: NewPrototypeVersionFilesItem[];
+  source?: VersionSource;
 }
 
 export interface PlayUrl {

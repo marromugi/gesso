@@ -8,8 +8,38 @@ const { prototype, prototypeFileContent, prototypeVersion, prototypeVersionFile 
 const hashesPerQuery = 90;
 const filesPerInsert = 30;
 
+/** The git commit a version was made from, and the branch it was on (`null` when detached). */
+export type VersionSource = { commit: string; branch: string | null };
+
 /** A snapshot of a prototype's files, by its number within the prototype. */
-export type PrototypeVersion = { number: number; createdAt: string };
+export type PrototypeVersion = {
+  number: number;
+  createdAt: string;
+  /** `null` when the client sent no commit. */
+  source: VersionSource | null;
+};
+
+/** What is read for each version: what `toVersion` turns into a `PrototypeVersion`. */
+const versionColumns = {
+  number: prototypeVersion.number,
+  createdAt: prototypeVersion.createdAt,
+  sourceCommit: prototypeVersion.sourceCommit,
+  sourceBranch: prototypeVersion.sourceBranch,
+};
+
+function toVersion(row: {
+  number: number;
+  createdAt: string;
+  sourceCommit: string | null;
+  sourceBranch: string | null;
+}): PrototypeVersion {
+  return {
+    number: row.number,
+    createdAt: row.createdAt,
+    source:
+      row.sourceCommit === null ? null : { commit: row.sourceCommit, branch: row.sourceBranch },
+  };
+}
 
 export type VersionFileEntry = VersionFile & { size: number };
 
@@ -60,13 +90,14 @@ export async function saveFileContent(
 /**
  * Makes the owner's prototype's next version from `files`, whose content must have been saved
  * with `saveFileContent` first; otherwise nothing is made and the missing hashes come back.
- * `files` is assumed to have passed `versionFilesProblem`.
+ * `files` is assumed to have passed `versionFilesProblem`. `source` is the commit it came from.
  */
 export async function createVersion(
   db: Db,
   ownerId: string,
   prototypeId: string,
   files: readonly VersionFile[],
+  source: VersionSource | null,
   now: Date,
 ): Promise<CreateVersionResult> {
   if (!(await ownsPrototype(db, ownerId, prototypeId))) return { kind: "notFound" };
@@ -85,20 +116,22 @@ export async function createVersion(
         id,
         prototypeId,
         number: sql`(select coalesce(max(${prototypeVersion.number}), 0) + 1 from ${prototypeVersion} where ${prototypeVersion.prototypeId} = ${prototypeId})`,
+        sourceCommit: source?.commit ?? null,
+        sourceBranch: source?.branch ?? null,
         createdAt: at,
       })
-      .returning({ number: prototypeVersion.number, createdAt: prototypeVersion.createdAt }),
+      .returning(versionColumns),
     ...chunks(files, filesPerInsert).map((chunk) =>
       db.insert(prototypeVersionFile).values(chunk.map((file) => ({ versionId: id, ...file }))),
     ),
     db.update(prototype).set({ updatedAt: at }).where(eq(prototype.id, prototypeId)),
   ]);
-  const [version] = inserted;
-  if (!version) throw new Error("D1 returned no row for the version just inserted");
+  const [row] = inserted;
+  if (!row) throw new Error("D1 returned no row for the version just inserted");
   const entries = files
     .map((file) => ({ path: file.path, hash: file.hash, size: sizes.get(file.hash) ?? 0 }))
     .toSorted((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-  return { kind: "created", version: { ...version, files: entries } };
+  return { kind: "created", version: { ...toVersion(row), files: entries } };
 }
 
 /** The owner's prototype's versions, newest first, or `null` when it isn't theirs. */
@@ -108,11 +141,12 @@ export async function listVersions(
   prototypeId: string,
 ): Promise<PrototypeVersion[] | null> {
   if (!(await ownsPrototype(db, ownerId, prototypeId))) return null;
-  return db
-    .select({ number: prototypeVersion.number, createdAt: prototypeVersion.createdAt })
+  const rows = await db
+    .select(versionColumns)
     .from(prototypeVersion)
     .where(eq(prototypeVersion.prototypeId, prototypeId))
     .orderBy(desc(prototypeVersion.number));
+  return rows.map(toVersion);
 }
 
 /** One version with its files sorted by path, or `null` when there is no such version of theirs. */
@@ -124,11 +158,7 @@ export async function getVersion(
 ): Promise<PrototypeVersionDetail | null> {
   if (!(await ownsPrototype(db, ownerId, prototypeId))) return null;
   const [version] = await db
-    .select({
-      id: prototypeVersion.id,
-      number: prototypeVersion.number,
-      createdAt: prototypeVersion.createdAt,
-    })
+    .select({ id: prototypeVersion.id, ...versionColumns })
     .from(prototypeVersion)
     .where(and(eq(prototypeVersion.prototypeId, prototypeId), eq(prototypeVersion.number, number)));
   if (!version) return null;
@@ -148,7 +178,7 @@ export async function getVersion(
     )
     .where(eq(prototypeVersionFile.versionId, version.id))
     .orderBy(asc(prototypeVersionFile.path));
-  return { number: version.number, createdAt: version.createdAt, files };
+  return { ...toVersion(version), files };
 }
 
 /** Saved content of the owner's prototype, or `null` when there is none under `hash`. */

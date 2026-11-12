@@ -50,7 +50,7 @@ async function makeVersion(files: Record<string, string>): Promise<void> {
     await saveFileContent(db, platform.env.PROTOTYPE_FILES, owner, "game", hash, content, now);
     entries.push({ path, hash });
   }
-  await createVersion(db, owner, "game", entries, new Date());
+  await createVersion(db, owner, "game", entries, null, new Date());
 }
 
 async function tokenFor(number: number, now: Date): Promise<string> {

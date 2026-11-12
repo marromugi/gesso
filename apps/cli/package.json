@@ -6,11 +6,19 @@
   },
   "type": "module",
   "scripts": {
+    "codegen": "orval",
     "typecheck": "tsc -p .",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "citty": "0.2.2",
+    "valibot": "^1.5.0"
+  },
   "devDependencies": {
+    "@gesso/api": "workspace:*",
     "@types/node": "^24.19.2",
+    "orval": "^8.47.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }

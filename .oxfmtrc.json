@@ -3,6 +3,7 @@
   "ignorePatterns": [
     "apps/api/openapi.json",
     "apps/api/migrations/meta/**",
+    "apps/cli/src/generated/**",
     "apps/web/src/lib/api/generated/**",
     "apps/web/src/lib/apiMocks/generated/**",
     "apps/web/.storybook/public/mockServiceWorker.js",
