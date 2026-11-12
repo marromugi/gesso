@@ -16,8 +16,10 @@ import {
   listVersions,
   readFileContent,
   saveFileContent,
+  readVersionFile,
   writeNote,
 } from "./versionStore.ts";
+import { ControlAction, controlsPath, maxControlsBytes, readControls } from "./controls.ts";
 
 const Hash = z.string().regex(hashPattern).openapi({ description: "SHA-256 as lowercase hex." });
 
@@ -208,6 +210,34 @@ const getVersionRoute = createRoute({
   },
 });
 
+const VersionControls = z
+  .object({
+    actions: z.array(ControlAction).nullable().openapi({
+      description: "What controls.json declares; `null` when it has none or can't be read.",
+    }),
+    problem: z.string().nullable().openapi({
+      description: "Why controls.json can't be read; `null` when it can, or there is none.",
+    }),
+  })
+  .openapi("VersionControls");
+
+const getControlsRoute = createRoute({
+  method: "get",
+  path: "/{prototypeId}/versions/{number}/controls",
+  operationId: "getPrototypeVersionControls",
+  middleware: [requireUser] as const,
+  request: { params: VersionParams },
+  responses: {
+    400: badRequestResponse,
+    200: {
+      description: "The controls the version declares in controls.json, for the play screen.",
+      content: { "application/json": { schema: VersionControls } },
+    },
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+  },
+});
+
 const writeNoteRoute = createRoute({
   method: "put",
   path: "/{prototypeId}/versions/{number}/note",
@@ -326,6 +356,28 @@ export const versionRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedI
     const version = await getVersion(getDb(c.env.DB), c.var.user.id, prototypeId, number);
     if (!version) return c.json(notFound, 404);
     return c.json(version, 200);
+  })
+  .openapi(getControlsRoute, async (c) => {
+    const { prototypeId, number } = c.req.valid("param");
+    const file = await readVersionFile(
+      getDb(c.env.DB),
+      c.env.PROTOTYPE_FILES,
+      c.var.user.id,
+      prototypeId,
+      number,
+      controlsPath,
+      maxControlsBytes,
+    );
+    if (file.kind === "notFound") return c.json(notFound, 404);
+    if (file.kind === "noFile") return c.json({ actions: null, problem: null }, 200);
+    if (file.kind === "tooLarge") {
+      return c.json({ actions: null, problem: `${file.size} バイトあり、大きすぎます` }, 200);
+    }
+    const controls = readControls(file.text);
+    if (controls.kind === "invalid") {
+      return c.json({ actions: null, problem: controls.problem }, 200);
+    }
+    return c.json({ actions: controls.actions, problem: null }, 200);
   })
   .openapi(writeNoteRoute, async (c) => {
     const { prototypeId, number } = c.req.valid("param");

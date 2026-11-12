@@ -176,6 +176,25 @@ export interface NewPrototypeVersion {
   source?: VersionSource;
 }
 
+export interface ControlAction {
+  id: string;
+  label: string;
+  keys: string[];
+}
+
+export interface VersionControls {
+  /**
+     * What controls.json declares; `null` when it has none or can't be read.
+     * @nullable
+     */
+  actions: ControlAction[] | null;
+  /**
+     * Why controls.json can't be read; `null` when it can, or there is none.
+     * @nullable
+     */
+  problem: string | null;
+}
+
 export interface VersionNote {
   note: string;
   /** @nullable */
@@ -1192,6 +1211,108 @@ export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getProt
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetPrototypeVersionQueryOptions(prototypeId,number,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPrototypeVersionControlsUrl = (prototypeId: string,
+    number: number,) => {
+
+
+
+
+  return `/prototypes/${prototypeId}/versions/${number}/controls`
+}
+
+export const getPrototypeVersionControls = async (prototypeId: string,
+    number: number, options?: Parameters<typeof fetchApi>[1]): Promise<VersionControls> => {
+
+  return fetchApi<VersionControls>(getGetPrototypeVersionControlsUrl(prototypeId,number),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPrototypeVersionControlsQueryKey = (prototypeId: string,
+    number: number,) => {
+    return [
+    `/prototypes/${prototypeId}/versions/${number}/controls`
+    ] as const;
+    }
+
+
+export const getGetPrototypeVersionControlsQueryOptions = <TData = Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError = ErrorType<void | Unauthorized | NotFound>>(prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPrototypeVersionControlsQueryKey(prototypeId,number);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPrototypeVersionControls>>> = ({ signal }) => getPrototypeVersionControls(prototypeId,number, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: prototypeId !== null && prototypeId !== undefined && number !== null && number !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPrototypeVersionControlsQueryResult = NonNullable<Awaited<ReturnType<typeof getPrototypeVersionControls>>>
+export type GetPrototypeVersionControlsQueryError = ErrorType<void | Unauthorized | NotFound>
+
+
+export function useGetPrototypeVersionControls<TData = Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPrototypeVersionControls>>,
+          TError,
+          Awaited<ReturnType<typeof getPrototypeVersionControls>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPrototypeVersionControls<TData = Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPrototypeVersionControls>>,
+          TError,
+          Awaited<ReturnType<typeof getPrototypeVersionControls>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPrototypeVersionControls<TData = Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPrototypeVersionControls<TData = Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersionControls>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPrototypeVersionControlsQueryOptions(prototypeId,number,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

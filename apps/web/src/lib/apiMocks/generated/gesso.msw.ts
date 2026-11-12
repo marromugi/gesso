@@ -29,6 +29,7 @@ import type {
   PrototypeList,
   PrototypeVersionDetail,
   PrototypeVersionList,
+  VersionControls,
   VersionNote
 } from '../../api/generated/gesso';
 
@@ -50,6 +51,8 @@ export const getListPrototypeVersionsResponseMock = (overrideResponse: Partial<E
 export const getCreatePrototypeVersionResponseMock = (): PrototypeVersionDetail => ({...{number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), source: faker.helpers.arrayElement([{commit: faker.helpers.fromRegExp("^(?:[0-9a-f]{40}|[0-9a-f]{64})$"), branch: faker.helpers.arrayElement([faker.string.alpha({length: {min: 1, max: 255}}), null])},null,]), note: faker.string.alpha({length: {min: 10, max: 20}}), noteUpdatedAt: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), null])},...{files: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({path: faker.string.alpha({length: {min: 10, max: 20}}), hash: faker.helpers.fromRegExp("^[0-9a-f]{64}$"), size: faker.number.int()}))},})
 
 export const getGetPrototypeVersionResponseMock = (): PrototypeVersionDetail => ({...{number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), source: faker.helpers.arrayElement([{commit: faker.helpers.fromRegExp("^(?:[0-9a-f]{40}|[0-9a-f]{64})$"), branch: faker.helpers.arrayElement([faker.string.alpha({length: {min: 1, max: 255}}), null])},null,]), note: faker.string.alpha({length: {min: 10, max: 20}}), noteUpdatedAt: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), null])},...{files: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({path: faker.string.alpha({length: {min: 10, max: 20}}), hash: faker.helpers.fromRegExp("^[0-9a-f]{64}$"), size: faker.number.int()}))},})
+
+export const getGetPrototypeVersionControlsResponseMock = (overrideResponse: Partial<Extract<VersionControls, object>> = {}): VersionControls => ({actions: faker.helpers.arrayElement([Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({id: faker.string.alpha({length: {min: 10, max: 20}}), label: faker.string.alpha({length: {min: 10, max: 20}}), keys: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => (faker.string.alpha({length: {min: 10, max: 20}})))})), null]), problem: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), null]), ...overrideResponse})
 
 export const getWritePrototypeVersionNoteResponseMock = (overrideResponse: Partial<Extract<VersionNote, object>> = {}): VersionNote => ({note: faker.string.alpha({length: {min: 10, max: 20}}), noteUpdatedAt: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), null]), ...overrideResponse})
 
@@ -185,6 +188,18 @@ export const getGetPrototypeVersionMockHandler = (overrideResponse?: PrototypeVe
   }, options)
 }
 
+export const getGetPrototypeVersionControlsMockHandler = (overrideResponse?: VersionControls | ((info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }>>[0]) => Promise<VersionControls> | VersionControls), options?: RequestHandlerOptions) => {
+  return http.get<{ prototypeId: string; number: string }>('*/prototypes/:prototypeId/versions/:number/controls', async (info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetPrototypeVersionControlsResponseMock(),
+      { status: 200
+      })
+  }, options)
+}
+
 export const getWritePrototypeVersionNoteMockHandler = (overrideResponse?: VersionNote | ((info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }, NewVersionNote>>[0]) => Promise<VersionNote> | VersionNote), options?: RequestHandlerOptions) => {
   return http.put<{ prototypeId: string; number: string }, NewVersionNote>('*/prototypes/:prototypeId/versions/:number/note', async (info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }, NewVersionNote>>[0]) => {
 
@@ -220,6 +235,7 @@ export const getGessoAPIMock = () => [
   getListPrototypeVersionsMockHandler(),
   getCreatePrototypeVersionMockHandler(),
   getGetPrototypeVersionMockHandler(),
+  getGetPrototypeVersionControlsMockHandler(),
   getWritePrototypeVersionNoteMockHandler(),
   getCreatePrototypePlayUrlMockHandler()
 ]

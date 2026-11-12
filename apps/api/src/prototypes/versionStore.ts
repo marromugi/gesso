@@ -227,6 +227,38 @@ export async function readFileContent(
   return bucket.get(contentKey(prototypeId, hash));
 }
 
+export type VersionFileRead =
+  | { kind: "notFound" }
+  | { kind: "noFile" }
+  | { kind: "tooLarge"; size: number }
+  | { kind: "found"; text: string };
+
+/**
+ * The text of the file at `path` in the owner's prototype's version `number`: `notFound` when
+ * there is no such version of theirs, `noFile` when the version has no such file, and
+ * `tooLarge` when it is over `maxBytes`, which is not read.
+ */
+export async function readVersionFile(
+  db: Db,
+  bucket: R2Bucket,
+  ownerId: string,
+  prototypeId: string,
+  number: number,
+  path: string,
+  maxBytes: number,
+): Promise<VersionFileRead> {
+  const version = await getVersion(db, ownerId, prototypeId, number);
+  if (!version) return { kind: "notFound" };
+  const file = version.files.find((entry) => entry.path === path);
+  if (!file) return { kind: "noFile" };
+  if (file.size > maxBytes) return { kind: "tooLarge", size: file.size };
+  const content = await bucket.get(contentKey(prototypeId, file.hash));
+  if (!content) {
+    throw new Error(`R2 has no content for ${file.hash}, though version ${number} lists it`);
+  }
+  return { kind: "found", text: await content.text() };
+}
+
 async function ownsPrototype(db: Db, ownerId: string, prototypeId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: prototype.id })
