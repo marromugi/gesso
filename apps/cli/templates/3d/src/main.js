@@ -21,7 +21,9 @@ scene.add(sun);
 const level = await loadLevel("assets/level.glb");
 scene.add(level.scene);
 const physics = await createPhysics(level.shapes, character);
-if (physics.skipped.length > 0) console.warn("these could not be made solid:", physics.skipped);
+if (physics.skipped.length > 0) {
+  throw new Error(`level.glb のこれらを固くできません: ${physics.skipped.join(", ")}`);
+}
 
 const player = new THREE.Mesh(
   new THREE.CapsuleGeometry(character.radius, character.halfHeight * 2),

@@ -1,7 +1,7 @@
 # Builds the level in Blender and writes it to assets/level.glb (see CLAUDE.md):
 #   <Blender> --background --factory-startup --python assets/level.py -- assets/level.glb
 # An object with the custom property `collider` ("convex" or "mesh") is solid in the game; one
-# whose name ends in "-col" is solid but not drawn.
+# whose name ends in "-col" is solid ("convex" unless it says otherwise) but not drawn.
 import math
 import sys
 
@@ -71,10 +71,10 @@ bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=1.2, location=(2, 5
 rock = bpy.context.object
 rock.name = "Rock"
 rock.data.materials.append(stone)
-bpy.ops.mesh.primitive_cube_add(size=2, location=(2, 5, 0.8))
+bpy.ops.mesh.primitive_cube_add(size=2.4, location=(2, 5, 0.8))
 rock_col = bpy.context.object
 rock_col.name = "Rock-col"
-solid(rock_col, "convex")
+solid(rock_col, "convex")  # the name alone would do
 
 bpy.ops.export_scene.gltf(
     filepath=out,

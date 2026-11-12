@@ -35,7 +35,9 @@ export async function createPhysics(shapes, character) {
     const vertices = new Float32Array(shape.vertices);
     const desc =
       shape.kind === "mesh"
-        ? ColliderDesc.trimesh(vertices, new Uint32Array(shape.indices))
+        ? shape.indices.length >= 3
+          ? ColliderDesc.trimesh(vertices, new Uint32Array(shape.indices))
+          : null
         : ColliderDesc.convexHull(vertices);
     if (desc === null) skipped.push(shape.name);
     else world.createCollider(desc);
@@ -50,6 +52,8 @@ export async function createPhysics(shapes, character) {
   controller.setMaxSlopeClimbAngle(((character.maxSlopeDegrees ?? 50) * Math.PI) / 180);
   controller.enableAutostep(character.stepHeight ?? 0.3, character.radius / 2, false);
   controller.enableSnapToGround(0.3);
+  // Pushes the character back out of what it starts touching; at Rapier's default it sinks.
+  controller.setNormalNudgeFactor(0.01);
 
   return {
     skipped,

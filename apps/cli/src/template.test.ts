@@ -66,6 +66,7 @@ test("a prototype with no version starts from a template, committed, and pushes 
     "controls.json",
     "index.html",
     "src/game.js",
+    "src/gesso/errors.js",
     "src/gesso/runtime.js",
     "src/main.js",
   ]);
@@ -92,16 +93,17 @@ test.each(templateNames)("the %s template's game runs with each of its controls"
     JSON.parse(await readFile(join(templatesDir, name, "controls.json"), "utf8")),
   );
   const game = createGame(await rulesOf(name), controls, { seed: 1 });
-  const first = game.state();
+  for (let i = 0; i < 60; i += 1) game.tick();
 
+  // Every action does something, and the state stays plain data.
   for (const action of controls.actions) {
+    const before = structuredClone(game.state());
     game.press(action.id);
     for (let i = 0; i < 10; i += 1) game.tick();
     game.release(action.id);
+    expect(game.state(), action.id).not.toEqual(before);
+    for (let i = 0; i < 60; i += 1) game.tick();
   }
-
-  // Every action does something, and the state stays plain data.
-  expect(game.state()).not.toEqual(first);
   expect(JSON.parse(JSON.stringify(game.state()))).toEqual(game.state());
 });
 

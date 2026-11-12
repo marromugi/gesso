@@ -29,7 +29,10 @@ function box(name: string, min: Point, max: Point, kind: "convex" | "mesh" = "co
 
 const ground = box("Ground", [-10, -0.5, -10], [10, 0, 10]);
 
-/** Moves the character from `from` by `step` each of `frames` times, falling as it goes. */
+/**
+ * Moves the character from `from` by `step` each of `frames` sixtieths of a second, falling as
+ * the 3d template's game does (gravity 20, the fall stopped when it stands).
+ */
 function walk(
   physics: Awaited<ReturnType<typeof createPhysics>>,
   from: { x: number; y: number; z: number },
@@ -37,7 +40,12 @@ function walk(
   frames: number,
 ) {
   let at = { ...from, grounded: false };
-  for (let i = 0; i < frames; i += 1) at = physics.moveCharacter(at, { ...step, y: -0.1 });
+  let vy = 0;
+  for (let i = 0; i < frames; i += 1) {
+    vy -= 20 / 60;
+    at = physics.moveCharacter(at, { ...step, y: vy / 60 });
+    if (at.grounded && vy < 0) vy = 0;
+  }
   return at;
 }
 
@@ -84,6 +92,22 @@ test("the character walks up a low slope and a low step, but not a high step", a
   const tall = await createPhysics([ground, box("Tall", [-4, 0, -2], [-3, 0.6, 2])], character);
   const atTall = walk(tall, { x: 0, y: standing, z: 0 }, { x: -0.1, z: 0 }, 40);
   expect(atTall.x).toBeCloseTo(-3 + character.radius, 1);
+});
+
+test("a character that starts touching the ground stays standing", async () => {
+  const physics = await createPhysics([ground], character);
+  const still = walk(physics, { x: 0, y: standing, z: 0 }, { x: 0, z: 0 }, 600);
+  expect(still.y).toBeCloseTo(standing, 1);
+  expect(still.grounded).toBe(true);
+});
+
+test("a shape that can't be made solid is named, and the rest are solid", async () => {
+  const physics = await createPhysics(
+    [ground, { name: "Empty", kind: "mesh", vertices: [0, 0, 0, 1, 0, 0], indices: [] }],
+    character,
+  );
+  expect(physics.skipped).toEqual(["Empty"]);
+  expect(walk(physics, { x: 0, y: 2, z: 0 }, { x: 0, z: 0 }, 60).y).toBeCloseTo(standing, 1);
 });
 
 test("the 3d template reads Rapier at the version the tests use", async () => {

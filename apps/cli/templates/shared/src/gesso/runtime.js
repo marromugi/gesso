@@ -181,34 +181,23 @@ export function createGame(definition, controls, { seed }) {
 }
 
 /**
- * Shows `message` over the page, for whoever plays it: the game stopped, and why.
- * @param {string} message
- */
-function showError(message) {
-  const box = document.createElement("pre");
-  box.textContent = message;
-  box.style.cssText =
-    "position:fixed;inset:auto 0 0 0;margin:0;padding:12px;background:#400c;color:#fff;font:12px monospace;white-space:pre-wrap";
-  document.body.append(box);
-}
-
-// An error before the game starts (a library that won't load, no WebGL) is shown on the page too.
-if (typeof window !== "undefined") {
-  addEventListener("error", (event) => showError(String(event.error ?? event.message)));
-  addEventListener("unhandledrejection", (event) => showError(String(event.reason)));
-}
-
-/**
  * Runs the game in the page: keys from `controls.json`, a fixed step at 60 per second, and
  * `window.gesso` for whoever drives it (Claude Code, a test). The page's URL may say
- * `?seed=123` and `?paused`. An error in the game pauses it and is shown on the page.
+ * `?seed=123` and `?paused`. An error in the game pauses it and is reported to the page
+ * (errors.js shows it).
  * @template State
  * @param {GameDefinition<State>} definition
  */
 export async function startGame(definition) {
   const response = await fetch(new URL("controls.json", document.baseURI));
   if (!response.ok) throw new Error(`controls.json: ${response.status}`);
-  const controls = parseControls(await response.json());
+  let json;
+  try {
+    json = await response.json();
+  } catch (error) {
+    throw new Error("controls.json: not JSON", { cause: error });
+  }
+  const controls = parseControls(json);
   const params = new URLSearchParams(location.search);
   const seedParam = Number.parseInt(params.get("seed") ?? "1", 10);
   const game = createGame(definition, controls, {
@@ -225,8 +214,8 @@ export async function startGame(definition) {
     } catch (error) {
       paused = true;
       lastError = error;
-      console.error(error);
-      showError(`ゲームが止まりました: ${error instanceof Error ? error.stack : String(error)}`);
+      // errors.js shows it on the page.
+      reportError(new Error("ゲームが止まりました", { cause: error }));
     }
   }
 
