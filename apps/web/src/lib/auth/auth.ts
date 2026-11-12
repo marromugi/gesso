@@ -7,12 +7,13 @@ const jsonPost = { method: "POST", headers: { "content-type": "application/json"
 
 /**
  * Starts signing in with GitHub: the browser leaves for GitHub and comes back to `returnTo`, a
- * path in this app. Throws `ApiError` when the API does not hand back where to go.
+ * path in this app; when the sign-in fails, it comes back there with `?error=<code>`. Throws
+ * `ApiError` when the API does not hand back where to go.
  */
 export async function startGitHubSignIn(returnTo: string): Promise<void> {
   const body = await fetchApi<unknown>(`${authPath}/sign-in/social`, {
     ...jsonPost,
-    body: JSON.stringify({ provider: "github", callbackURL: returnTo }),
+    body: JSON.stringify({ provider: "github", callbackURL: returnTo, errorCallbackURL: returnTo }),
   });
   window.location.assign(readRedirectUrl(body));
 }
