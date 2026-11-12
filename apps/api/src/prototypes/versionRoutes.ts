@@ -46,7 +46,7 @@ const PrototypeVersionDetail = PrototypeVersion.extend({
 
 const NewVersionFile = z.object({
   path: z.string().max(maxPathLength).refine(isFilePath, {
-    message: "a relative path with no empty, `.` or `..` segment",
+    message: "a relative path with no empty segment, none starting with a dot, and no node_modules",
   }),
   hash: Hash,
 });

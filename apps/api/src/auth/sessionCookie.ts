@@ -21,17 +21,24 @@ export async function sessionCookieHeader(token: string, secret: string): Promis
   return `${sessionCookieName}=${encodeURIComponent(signed)}`;
 }
 
-/**
- * `headers` with a session token sent as `Authorization: Bearer <token>` turned into the session
- * cookie Better Auth reads, in place of any cookie; without one, `headers` as they are. Better
- * Auth's `bearer` plugin does the same, but it also hands the session token back in a header on
- * every response that sets the cookie, which a page's script could read.
- */
-export async function withBearerSession(headers: Headers, secret: string): Promise<Headers> {
+/** The session token sent as `Authorization: Bearer <token>`, or `null` without one. */
+export function bearerToken(headers: Headers): string | null {
   const authorization = headers.get("authorization");
-  if (authorization?.slice(0, bearerPrefix.length).toLowerCase() !== bearerPrefix) return headers;
+  if (authorization?.slice(0, bearerPrefix.length).toLowerCase() !== bearerPrefix) return null;
   const token = authorization.slice(bearerPrefix.length).trim();
-  if (token === "") return headers;
+  return token === "" ? null : token;
+}
+
+/**
+ * `headers` with the session cookie Better Auth reads in place of any cookie, carrying `token`.
+ * Better Auth's `bearer` plugin does the same, but it also hands the session token back in a
+ * header on every response that sets the cookie, which a page's script could read.
+ */
+export async function withSessionCookie(
+  headers: Headers,
+  token: string,
+  secret: string,
+): Promise<Headers> {
   const converted = new Headers(headers);
   converted.set("cookie", await sessionCookieHeader(token, secret));
   return converted;

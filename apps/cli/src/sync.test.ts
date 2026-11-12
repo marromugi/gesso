@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
@@ -18,6 +18,7 @@ function fakeApi() {
   const state = { uploads: 0 };
   const client: ApiClient = {
     me: async () => ({ name: "owner" }),
+    endSession: async () => {},
     listPrototypes: async () => [{ id: prototypeId, name: "jump" }],
     listVersions: async () =>
       versions.map((_, index) => ({ number: index + 1, createdAt: "" })).toReversed(),
@@ -177,6 +178,70 @@ test.each([
 
   await expect(pull(api.client, prototypeId, dir)).rejects.toThrow();
   await expect(read("index.html")).rejects.toThrow();
+});
+
+test("a prototype with no version gets a folder to push its first version from", async () => {
+  const api = fakeApi();
+
+  expect(await pull(api.client, prototypeId, dir)).toEqual({ version: 0, written: 0, deleted: 0 });
+  await write("index.html", "<h1>first</h1>");
+
+  expect(await push(api.client, dir)).toMatchObject({ kind: "created", version: 1 });
+});
+
+test("push from a folder behind the newest version is refused, unless forced", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+  await pull(api.client, prototypeId, dir);
+  api.addVersion({ "index.html": "<h1>2 from elsewhere</h1>" });
+  await write("index.html", "<h1>mine</h1>");
+
+  await expect(push(api.client, dir)).rejects.toThrow(/版 2/);
+  expect(await api.client.listVersions(prototypeId)).toHaveLength(2);
+
+  expect(await push(api.client, dir, { force: true })).toMatchObject({ version: 3 });
+});
+
+test("pull never writes through a link to outside the folder", async () => {
+  const outside = await mkdtemp(join(tmpdir(), "gesso-outside-"));
+  try {
+    const api = fakeApi();
+    api.addVersion({ "index.html": "<h1>1</h1>" });
+    api.addVersion({ "index.html": "<h1>1</h1>", "assets/a.js": "a()", "data.json": "{}" });
+    await pull(api.client, prototypeId, dir, { number: 1 });
+    await writeFile(join(outside, "data.json"), "theirs");
+    await symlink(outside, join(dir, "assets"));
+    await symlink(join(outside, "data.json"), join(dir, "data.json"));
+
+    await expect(pull(api.client, prototypeId, dir, { force: true })).rejects.toThrow(/リンク/);
+
+    expect((await readdir(outside)).toSorted()).toEqual(["data.json"]);
+    expect(await readFile(join(outside, "data.json"), "utf8")).toBe("theirs");
+  } finally {
+    await rm(outside, { recursive: true, force: true });
+  }
+});
+
+test("a file that becomes a folder in the next version, and back", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>", level: "one" });
+  api.addVersion({ "index.html": "<h1>2</h1>", "level/one.json": "{}" });
+  api.addVersion({ "index.html": "<h1>3</h1>", level: "three" });
+  await pull(api.client, prototypeId, dir, { number: 1 });
+
+  await pull(api.client, prototypeId, dir, { number: 2 });
+  expect(await read("level/one.json")).toBe("{}");
+  await pull(api.client, prototypeId, dir, { number: 3 });
+  expect(await read("level")).toBe("three");
+});
+
+test("pull refuses when a file pulled before was deleted since", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>", "game.js": "go()" });
+  await pull(api.client, prototypeId, dir);
+  await rm(join(dir, "game.js"));
+
+  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/game\.js/);
 });
 
 test("push needs a folder that was pulled", async () => {

@@ -339,6 +339,19 @@
         }
       }
     },
+    "/session": {
+      "delete": {
+        "operationId": "deleteBearerSession",
+        "responses": {
+          "204": {
+            "description": "The session sent as `Authorization: Bearer` has ended (or had already)."
+          },
+          "401": {
+            "description": "The request carries no `Authorization: Bearer` token."
+          }
+        }
+      }
+    },
     "/prototypes": {
       "get": {
         "operationId": "listPrototypes",

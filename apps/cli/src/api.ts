@@ -19,6 +19,8 @@ export type CreateVersionResult =
 /** The API's routes the CLI uses, as the person signed in with `token`. */
 export type ApiClient = {
   me(): Promise<{ name: string } | null>;
+  /** Ends the session the token is for, so the token stops working. */
+  endSession(): Promise<void>;
   listPrototypes(): Promise<Prototype[]>;
   listVersions(prototypeId: string): Promise<PrototypeVersion[]>;
   versionFiles(prototypeId: string, number: number): Promise<VersionFile[]>;
@@ -60,6 +62,10 @@ export function createApiClient(apiUrl: string, token: string, fetchFn: Fetch): 
       const body = await json<{ user: { name: string } | null }>("GET", "/me");
       return body.user;
     },
+    async endSession() {
+      const response = await send("DELETE", "/session");
+      if (!response.ok) throw await rejected("DELETE", "/session", response);
+    },
     async listPrototypes() {
       const body = await json<{ prototypes: Prototype[] }>("GET", "/prototypes");
       return body.prototypes;
@@ -88,6 +94,11 @@ export function createApiClient(apiUrl: string, token: string, fetchFn: Fetch): 
         body: content,
       });
       if (response.status === 404) throw notFound(path);
+      if (response.status === 413) {
+        throw new CliError(
+          `${content.byteLength} バイトのファイルは大きすぎて上げられません（1 ファイル 10 MiB まで）。`,
+        );
+      }
       if (!response.ok) throw await rejected("PUT", path, response);
     },
     async createVersion(prototypeId, files) {

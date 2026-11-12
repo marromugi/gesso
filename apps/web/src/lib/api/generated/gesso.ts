@@ -368,6 +368,74 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 
 
 
+export const getDeleteBearerSessionUrl = () => {
+
+
+
+
+  return `/session`
+}
+
+export const deleteBearerSession = async ( options?: Parameters<typeof fetchApi>[1]): Promise<void> => {
+
+  return fetchApi<void>(getDeleteBearerSessionUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteBearerSessionMutationKey = () => ['deleteBearerSession'] as const;
+
+export const getDeleteBearerSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBearerSession>>, TError,void, TContext>, request?: SecondParameter<typeof fetchApi>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBearerSession>>, TError,void, TContext> => {
+
+const mutationKey = getDeleteBearerSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBearerSession>>, void> = () => {
+
+
+          return  deleteBearerSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBearerSessionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBearerSession>>>
+
+    export type DeleteBearerSessionMutationError = ErrorType<void>
+
+
+    export const useDeleteBearerSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBearerSession>>, TError,void, TContext>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBearerSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteBearerSessionMutationOptions(options), queryClient);
+    }
+
 export const getListPrototypesUrl = () => {
 
 

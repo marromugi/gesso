@@ -9,6 +9,28 @@ export const cliClientId = "gesso-cli";
 /** The web app's page where a signed-in person approves a CLI's sign-in (apps/web `/device`). */
 const deviceApprovalPath = "/device";
 
+/**
+ * Letters a CLI's sign-in code is made of: no digits, so the web app's router never reads a
+ * code as a number (`2345E678`), and no I or O, which look like 1 and 0.
+ */
+const userCodeLetters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const userCodeLength = 8;
+
+/** A code of `userCodeLength` letters, each equally likely. */
+export function generateUserCode(): string {
+  // Bytes from this on would make the first letters more likely than the rest.
+  const limit = 256 - (256 % userCodeLetters.length);
+  let code = "";
+  while (code.length < userCodeLength) {
+    for (const byte of crypto.getRandomValues(new Uint8Array(userCodeLength))) {
+      if (byte < limit && code.length < userCodeLength) {
+        code += userCodeLetters[byte % userCodeLetters.length];
+      }
+    }
+  }
+  return code;
+}
+
 /** What the auth setup reads from the Worker's environment. */
 export type AuthEnv = Record<
   | "AUTH_BASE_URL"
@@ -65,6 +87,7 @@ export function authOptions(env: AuthEnv) {
         // Relative to the auth base URL's origin: the web app's page, not an API route.
         verificationUri: deviceApprovalPath,
         validateClient: (clientId) => clientId === cliClientId,
+        generateUserCode,
       }),
     ],
     databaseHooks: {

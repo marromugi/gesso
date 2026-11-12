@@ -16,6 +16,7 @@ export function DeviceApproval({ userCode }: { userCode?: string }) {
 }
 
 const login = <code className="font-mono">gesso login</code>;
+const logout = <code className="font-mono">gesso logout</code>;
 
 function content(approval: Approval): ReactNode {
   if (approval.state === "noCode") {
@@ -38,7 +39,15 @@ function content(approval: Approval): ReactNode {
 
   return (
     <>
-      <p>ターミナルに出ているコードと同じか確かめてから、承認してください。</p>
+      <p>
+        承認すると、この CLI はあなたとして gesso
+        を使えます（プロトタイプを読む・版を送る）。使わないまま 7 日たつか、CLI で {logout}{" "}
+        するまで続きます。
+      </p>
+      <p>
+        自分で {login}{" "}
+        して、ターミナルに出ているコードと同じときだけ承認してください。覚えがなければ拒否してください。
+      </p>
       <p className="rounded-container border border-edge bg-surface-raised text-center font-mono text-2xl tracking-widest container-p-4">
         {approval.userCode}
       </p>

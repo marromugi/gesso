@@ -23,6 +23,7 @@ beforeAll(async () => {
   platform = await startLocalPlatform();
   await addUser(platform.env, "owner", allowedGitHubId);
   await addUser(platform.env, "refused", "999");
+  await addUser(platform.env, "other", allowedGitHubId);
   cookie = await signIn(platform.env, "owner");
 });
 
@@ -114,12 +115,49 @@ test("only the gesso CLI can ask for a code", async () => {
   expect(response.status).toBe(400);
 });
 
-test.each([
-  ["a token that is no session", "not-a-session"],
-  ["a session of someone no longer allowed", "refused"],
-])("%s is signed out", async (_, kind) => {
-  const token = kind === "refused" ? await makeSession(platform.env, "refused") : kind;
-  const headers = { authorization: `Bearer ${token}` };
+test("codes are letters only, which the web app's router keeps as text", async () => {
+  for (let i = 0; i < 5; i += 1) {
+    expect((await startCliSignIn()).user_code).toMatch(/^[A-HJ-NP-Z]{8}$/);
+  }
+});
+
+test("someone else signed in can't approve a code the person opened", async () => {
+  const code = await startCliSignIn();
+  await call(`/auth/device?user_code=${code.user_code}`, { headers: fromBrowser() });
+  const otherCookie = await signIn(platform.env, "other");
+
+  const response = await call("/auth/device/approve", {
+    method: "POST",
+    headers: { cookie: otherCookie, origin: webOrigin },
+    body: JSON.stringify({ userCode: code.user_code }),
+  });
+
+  expect(response.status).toBe(403);
+});
+
+test("a session of someone no longer allowed is signed out, even as Bearer", async () => {
+  const headers = { authorization: `Bearer ${await makeSession(platform.env, "refused")}` };
   expect(await (await call("/me", { headers })).json()).toEqual({ user: null });
   expect((await call("/prototypes", { headers })).status).toBe(401);
+});
+
+test("a Bearer session extended on read never comes back as a cookie", async () => {
+  // The same kind of session, read as a cookie, is extended with a new cookie.
+  const byCookie = await call("/me", { headers: { cookie: await signIn(platform.env, "owner") } });
+  expect(byCookie.headers.getSetCookie()).not.toEqual([]);
+
+  const token = await makeSession(platform.env, "owner");
+  const byBearer = await call("/me", { headers: { authorization: `Bearer ${token}` } });
+
+  expect(await byBearer.json()).toMatchObject({ user: { id: "owner" } });
+  expect(byBearer.headers.getSetCookie()).toEqual([]);
+});
+
+test("the CLI's sign-out ends its session", async () => {
+  const headers = { authorization: `Bearer ${await makeSession(platform.env, "owner")}` };
+
+  expect((await call("/session", { method: "DELETE", headers })).status).toBe(204);
+
+  expect(await (await call("/me", { headers })).json()).toEqual({ user: null });
+  expect((await call("/session", { method: "DELETE" })).status).toBe(401);
 });

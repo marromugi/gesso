@@ -1,5 +1,11 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { authRoutePrefix, getAuth, readSessionUser, toPublicAuthRequest } from "./auth/index.ts";
+import {
+  authRoutePrefix,
+  endBearerSession,
+  getAuth,
+  readSessionUser,
+  toPublicAuthRequest,
+} from "./auth/index.ts";
 import { prototypeRoutes, versionRoutes } from "./prototypes/index.ts";
 
 const Health = z.object({ status: z.literal("ok") }).openapi("Health");
@@ -39,9 +45,22 @@ const getMe = createRoute({
   },
 });
 
+const deleteBearerSession = createRoute({
+  method: "delete",
+  path: "/session",
+  operationId: "deleteBearerSession",
+  responses: {
+    204: { description: "The session sent as `Authorization: Bearer` has ended (or had already)." },
+    401: { description: "The request carries no `Authorization: Bearer` token." },
+  },
+});
+
 export const app = new OpenAPIHono<{ Bindings: Env }>()
   .openapi(getHealth, (c) => c.json({ status: "ok" } as const, 200))
   .openapi(getMe, async (c) => c.json({ user: await readSessionUser(c) }, 200))
+  .openapi(deleteBearerSession, async (c) =>
+    (await endBearerSession(c)) ? c.body(null, 204) : c.body(null, 401),
+  )
   .route("/prototypes", prototypeRoutes)
   .route("/prototypes", versionRoutes);
 

@@ -7,6 +7,7 @@ import { CliError } from "./cliError.ts";
 import {
   credentialsPath,
   deleteCredentials,
+  loadCredentials,
   requireCredentials,
   saveCredentials,
 } from "./credentials.ts";
@@ -16,15 +17,18 @@ import { pull, push } from "./sync.ts";
 const usage = `gesso: プロトタイプの版を gesso と手元のフォルダーの間でやりとりする
 
   pnpm gesso login [--api <URL>]   ブラウザで承認してサインインする（既定の API: ${defaultApiUrl}）
-  pnpm gesso logout                サインインした情報を消す
+  pnpm gesso logout                gesso のセッションを終え、サインインした情報を消す
   pnpm gesso list                  自分のプロトタイプの ID と名前
   pnpm gesso versions <ID>         プロトタイプの版（新しい順）
   pnpm gesso pull <ID> [<dir>] [--version <N>] [--force]
                                    版（既定はいちばん新しい版）を <dir>（既定は .）に取ってくる
-  pnpm gesso push [<dir>]          <dir>（既定は .）のファイルを次の版として送る
+  pnpm gesso push [<dir>] [--force]
+                                   <dir>（既定は .）のファイルを次の版として送る
 
 pull したフォルダーには .gesso.json ができ、push はそれを見て送り先を決めます。
-ドットで始まるファイルとフォルダー、node_modules は送りません。
+まだ版のないプロトタイプも、pull で空のフォルダーを用意してから push します。
+ドットで始まるファイルとフォルダー、node_modules、リンクは送りません。
+フォルダーが取ってきた版より新しい版があると、push は --force なしでは送りません。
 `;
 
 async function main(argv: string[]): Promise<void> {
@@ -50,12 +54,24 @@ async function main(argv: string[]): Promise<void> {
   if (command === "login") {
     const apiUrl = (values.api ?? defaultApiUrl).replace(/\/+$/, "");
     const token = await login(apiUrl, { fetch, say: console.log, wait: (ms) => sleep(ms) });
-    await saveCredentials(path, { apiUrl, token });
+    // Approved, but the API may still refuse the person (no longer allowed to sign in).
     const me = await createApiClient(apiUrl, token, fetch).me();
-    console.log(`${me?.name ?? "（名前なし）"} としてサインインしました。`);
+    if (me === null)
+      throw new CliError("承認されましたが、このアカウントではサインインできません。");
+    await saveCredentials(path, { apiUrl, token });
+    console.log(`${me.name} としてサインインしました。`);
     return;
   }
   if (command === "logout") {
+    const credentials = await loadCredentials(path);
+    if (credentials !== null) {
+      await createApiClient(credentials.apiUrl, credentials.token, fetch)
+        .endSession()
+        .catch((error: unknown) => {
+          if (!(error instanceof CliError)) throw error;
+          console.error(`gesso のセッションを終えられませんでした（${error.message}）。`);
+        });
+    }
     await deleteCredentials(path);
     console.log("サインインした情報を消しました。");
     return;
@@ -81,12 +97,18 @@ async function main(argv: string[]): Promise<void> {
       number: values.version === undefined ? undefined : versionNumber(values.version),
       force: values.force,
     });
-    console.log(
-      `版 ${result.version} を ${dir} に取ってきました（${result.written} ファイル、消したもの ${result.deleted}）。`,
-    );
+    if (result.version === 0) {
+      console.log(
+        `プロトタイプにはまだ版がありません。${dir} にファイルを置いて \`pnpm gesso push\` すると版 1 ができます。`,
+      );
+    } else {
+      console.log(
+        `版 ${result.version} を ${dir} に取ってきました（${result.written} ファイル、消したもの ${result.deleted}）。`,
+      );
+    }
   } else if (command === "push") {
     const [folder = "."] = rest;
-    const result = await push(api, resolve(here, folder));
+    const result = await push(api, resolve(here, folder), { force: values.force });
     if (result.kind === "unchanged") {
       console.log(`版 ${result.version} から変わったファイルがないので、版は作りませんでした。`);
     } else {

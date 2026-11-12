@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, rm, rmdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import type { VersionFile } from "./api.ts";
 import { CliError } from "./cliError.ts";
@@ -88,24 +88,45 @@ export async function isEmptyFolder(dir: string): Promise<boolean> {
   }
 }
 
+/** Writes `content` at `path` in the folder, making the folders on the way. */
 export async function writeLocalFile(dir: string, path: string, content: Uint8Array) {
-  const target = inside(dir, path);
+  await insideFolder(dir, path);
+  const target = resolve(dir, path);
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, content);
 }
 
+/** Deletes the file at `path` in the folder, then the folders it leaves empty. */
 export async function deleteLocalFile(dir: string, path: string) {
-  await rm(inside(dir, path), { force: true });
+  await insideFolder(dir, path);
+  const root = resolve(dir);
+  await rm(resolve(root, path), { force: true });
+  for (let folder = dirname(resolve(root, path)); folder !== root; folder = dirname(folder)) {
+    if ((await readdir(folder)).length > 0) break;
+    await rmdir(folder);
+  }
 }
 
-/** `path` under `dir`; throws for a path that would leave it, which the API never lists. */
-function inside(dir: string, path: string): string {
+/**
+ * Throws unless `path` really is in the folder: not outside it by name, not reached through a
+ * link (which `localFiles` never reads, so nothing would warn that it is overwritten), and not a
+ * link itself.
+ */
+async function insideFolder(dir: string, path: string): Promise<void> {
   const root = resolve(dir);
-  const target = resolve(root, path);
-  if (!target.startsWith(`${root}${sep}`)) {
-    throw new CliError(`版のパス ${path} がフォルダーの外を指しています。`);
+  const outside = new CliError(`版のパス ${path} はフォルダーの外か、リンクの先を指しています。`);
+  if (!resolve(root, path).startsWith(`${root}${sep}`)) throw outside;
+  // Each part that exists already must be a real file or folder; the rest is made new.
+  let current = root;
+  for (const segment of path.split("/")) {
+    current = join(current, segment);
+    const stat = await lstat(current).catch((cause: unknown) => {
+      if (isNotFound(cause)) return null;
+      throw cause;
+    });
+    if (stat === null) return;
+    if (stat.isSymbolicLink()) throw outside;
   }
-  return target;
 }
 
 /** SHA-256 as lowercase hex, as the API names content. */

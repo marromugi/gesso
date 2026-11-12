@@ -64,7 +64,10 @@ export async function signIn(env: Env, userId: string): Promise<string> {
   return sessionCookieHeader(await makeSession(env, userId), env.BETTER_AUTH_SECRET);
 }
 
-/** Makes a session for `userId` and gives its token, as the CLI holds it. */
+/**
+ * Makes a session for `userId` and gives its token, as the CLI holds it. It expires in an hour,
+ * which Better Auth takes for a session old enough to extend on its next read.
+ */
 export async function makeSession(env: Env, userId: string): Promise<string> {
   const token = crypto.randomUUID();
   const at = new Date();
