@@ -156,6 +156,25 @@ export interface NewPrototypeVersion {
   source?: VersionSource;
 }
 
+export interface ControlAction {
+  id: string;
+  label: string;
+  keys: string[];
+}
+
+export interface VersionControls {
+  /**
+     * What controls.json declares; `null` when it has none or can't be read.
+     * @nullable
+     */
+  actions: ControlAction[] | null;
+  /**
+     * Why controls.json can't be read; `null` when it can, or there is none.
+     * @nullable
+     */
+  problem: string | null;
+}
+
 export interface VersionNote {
   note: string;
   /** @nullable */
@@ -719,6 +738,58 @@ export const getPrototypeVersion = async (prototypeId: string,
     number: number, options?: Parameters<typeof request>[1]): Promise<getPrototypeVersionResponse> => {
 
   return request<getPrototypeVersionResponse>(getGetPrototypeVersionUrl(prototypeId,number),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getPrototypeVersionControlsResponse200 = {
+  data: VersionControls
+  status: 200
+}
+
+export type getPrototypeVersionControlsResponse400 = {
+  data: void
+  status: 400
+}
+
+export type getPrototypeVersionControlsResponse401 = {
+  data: Unauthorized
+  status: 401
+}
+
+export type getPrototypeVersionControlsResponse404 = {
+  data: NotFound
+  status: 404
+}
+
+export type getPrototypeVersionControlsResponseSuccess = (getPrototypeVersionControlsResponse200) & {
+  headers: Headers;
+};
+export type getPrototypeVersionControlsResponseError = (getPrototypeVersionControlsResponse400 | getPrototypeVersionControlsResponse401 | getPrototypeVersionControlsResponse404) & {
+  headers: Headers;
+};
+
+export type getPrototypeVersionControlsResponse = (getPrototypeVersionControlsResponseSuccess | getPrototypeVersionControlsResponseError)
+
+export const getGetPrototypeVersionControlsUrl = (prototypeId: string,
+    number: number,) => {
+
+
+
+
+  return `/prototypes/${prototypeId}/versions/${number}/controls`
+}
+
+export const getPrototypeVersionControls = async (prototypeId: string,
+    number: number, options?: Parameters<typeof request>[1]): Promise<getPrototypeVersionControlsResponse> => {
+
+  return request<getPrototypeVersionControlsResponse>(getGetPrototypeVersionControlsUrl(prototypeId,number),
   {
     ...options,
     method: 'GET'

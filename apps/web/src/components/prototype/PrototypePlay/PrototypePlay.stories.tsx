@@ -14,6 +14,7 @@ import {
   getCreatePrototypePlayUrlMockHandler,
   getGetPrototypeMockHandler,
   getListPrototypeVersionsMockHandler,
+  getGetPrototypeVersionControlsMockHandler,
   getWritePrototypeVersionNoteMockHandler,
 } from "@/lib/apiMocks";
 import { PrototypePlay } from "./PrototypePlay.tsx";
@@ -26,9 +27,13 @@ const versions: PrototypeVersion[] = [
   { number: 1, createdAt: "2026-11-10T03:00:00.000Z", source: null, note: "", noteUpdatedAt: null },
 ];
 
-/** Stands in for the API: a prototype with `list` as its versions, each played at `#v<number>`. */
+/**
+ * Stands in for the API: a prototype with `list` as its versions, each played at `#v<number>`
+ * and declaring no controls.
+ */
 function fakeApi(list: PrototypeVersion[]) {
   return [
+    getGetPrototypeVersionControlsMockHandler({ actions: null, problem: null }),
     getGetPrototypeMockHandler({
       id: prototypeId,
       name: "二段ジャンプ",
@@ -358,5 +363,54 @@ export const NoteChangedElsewhereWhileEditing: Story = {
       ),
     ).toBeVisible();
     await expect(await noteField()).toHaveValue("ジャンプが重い!");
+  },
+};
+
+/** The version's controls.json is shown as how to play it, keys as people read them. */
+export const ShowsControls: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      getGetPrototypeVersionControlsMockHandler({
+        actions: [
+          { id: "left", label: "左へ", keys: ["ArrowLeft", "KeyA"] },
+          { id: "jump", label: "ジャンプ", keys: ["Space"] },
+        ],
+        problem: null,
+      }),
+      ...fakeApi(versions),
+    );
+  },
+  async play() {
+    const guide = await screen.findByRole("region", { name: "操作" });
+    await expect(guide).toHaveTextContent("左へ←A");
+    await expect(guide).toHaveTextContent("ジャンプSpace");
+  },
+};
+
+export const ControlsCantBeRead: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      getGetPrototypeVersionControlsMockHandler({
+        actions: null,
+        problem: "JSON として読めません",
+      }),
+      ...fakeApi(versions),
+    );
+  },
+  async play() {
+    await expect(
+      await screen.findByText("controls.json を読めません: JSON として読めません"),
+    ).toBeVisible();
+  },
+};
+
+/** Without controls.json, nothing is said about controls. */
+export const NoControls: Story = {
+  beforeEach({ msw }) {
+    msw.use(...fakeApi(versions));
+  },
+  async play() {
+    await player();
+    await expect(screen.queryByRole("region", { name: "操作" })).toBeNull();
   },
 };

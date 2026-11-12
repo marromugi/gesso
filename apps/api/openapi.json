@@ -334,6 +334,54 @@
           "files"
         ]
       },
+      "VersionControls": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ControlAction"
+            },
+            "description": "What controls.json declares; `null` when it has none or can't be read."
+          },
+          "problem": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why controls.json can't be read; `null` when it can, or there is none."
+          }
+        },
+        "required": [
+          "actions",
+          "problem"
+        ]
+      },
+      "ControlAction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "keys"
+        ]
+      },
       "VersionNote": {
         "type": "object",
         "properties": {
@@ -831,6 +879,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PrototypeVersionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}/versions/{number}/controls": {
+      "get": {
+        "operationId": "getPrototypeVersionControls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": true,
+            "name": "number",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The controls the version declares in controls.json, for the play screen.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionControls"
                 }
               }
             }

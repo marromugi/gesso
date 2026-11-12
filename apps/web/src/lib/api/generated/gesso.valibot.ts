@@ -141,6 +141,21 @@ export const GetPrototypeVersionResponse = v.intersect([v.object({
 })])
 
 
+export const GetPrototypeVersionControlsParams = v.object({
+  prototypeId: v.string(),
+  number: v.pipe(v.number(), v.integer(), v.minValue(1))
+})
+
+export const GetPrototypeVersionControlsResponse = v.object({
+  actions: v.nullable(v.pipe(v.array(v.object({
+  id: v.string(),
+  label: v.string(),
+  keys: v.array(v.string())
+})), v.description('What controls.json declares; `null` when it has none or can\'t be read.'))),
+  problem: v.nullable(v.pipe(v.string(), v.description('Why controls.json can\'t be read; `null` when it can, or there is none.')))
+})
+
+
 export const WritePrototypeVersionNoteParams = v.object({
   prototypeId: v.string(),
   number: v.pipe(v.number(), v.integer(), v.minValue(1))

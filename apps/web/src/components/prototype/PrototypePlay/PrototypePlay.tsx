@@ -1,5 +1,6 @@
 import { Link, Navigate } from "@tanstack/react-router";
 import { apiFailureText } from "@/lib/ui/apiFailureText";
+import { ControlsGuide } from "./ControlsGuide";
 import { Player } from "./Player";
 import { VersionNote } from "./VersionNote";
 import { usePrototypePlay } from "./usePrototypePlay";
@@ -38,7 +39,10 @@ export function PrototypePlay({ prototypeId, version }: { prototypeId: string; v
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Player player={play.player} name={play.name} />
           {play.note === null ? null : (
-            <VersionNote key={play.note.number} prototypeId={prototypeId} shown={play.note} />
+            <>
+              <ControlsGuide prototypeId={prototypeId} number={play.note.number} />
+              <VersionNote key={play.note.number} prototypeId={prototypeId} shown={play.note} />
+            </>
           )}
         </div>
         {play.versions.length > 0 ? (

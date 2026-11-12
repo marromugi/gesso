@@ -189,6 +189,39 @@ test("someone else's version's note can't be written", async () => {
   expect(await theirs.json()).toMatchObject({ note: "" });
 });
 
+test("a version's controls come from its controls.json, or say why they don't", async () => {
+  const page = await upload("mine", "<h1>controls</h1>");
+  /** Makes a version of `files` (path → text) and gives its controls as the API answers. */
+  const controlsOf = async (files: Record<string, string>) => {
+    const entries = [{ path: "index.html", hash: page.hash }];
+    for (const [path, text] of Object.entries(files)) {
+      entries.push({ path, hash: (await upload("mine", text)).hash });
+    }
+    const { number }: { number: number } = await (await postVersion("mine", entries)).json();
+    const response = await request(`/prototypes/mine/versions/${number}/controls`);
+    expect(response.status).toBe(200);
+    return response.json();
+  };
+  const actions = [{ id: "jump", label: "ジャンプ", keys: ["Space"] }];
+
+  expect(await controlsOf({ "controls.json": JSON.stringify({ format: 1, actions }) })).toEqual({
+    actions,
+    problem: null,
+  });
+  expect(await controlsOf({})).toEqual({ actions: null, problem: null });
+  expect(await controlsOf({ "controls.json": "{ broken" })).toEqual({
+    actions: null,
+    problem: "JSON として読めません",
+  });
+  expect(await controlsOf({ "controls.json": " ".repeat(64 * 1024 + 1) })).toMatchObject({
+    actions: null,
+    problem: expect.stringMatching(/大きすぎます/),
+  });
+
+  expect((await request("/prototypes/mine/versions/999/controls")).status).toBe(404);
+  expect((await request("/prototypes/theirs/versions/1/controls")).status).toBe(404);
+});
+
 test("a version with content not uploaded yet names it and makes nothing", async () => {
   const before = await versionNumbers("mine");
   const page = await upload("mine", "<h1>missing</h1>");
