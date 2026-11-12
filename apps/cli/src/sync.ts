@@ -139,11 +139,8 @@ export async function push(
 
   const newest = await newestVersion(api, manifest.prototypeId);
   if (newest !== null) {
-    const sameCommit = newest.source?.commit === head.commit;
-    if (
-      sameCommit ||
-      sameFiles(files, await api.versionFiles(manifest.prototypeId, newest.number))
-    ) {
+    // The same commit, or another one with the same files (one `pull` made, say).
+    if (sameFiles(files, await api.versionFiles(manifest.prototypeId, newest.number))) {
       await writeManifest(gitDir, { ...manifest, version: newest.number });
       return { kind: "unchanged", version: newest.number, uncommitted };
     }
