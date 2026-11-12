@@ -36,6 +36,13 @@
       "when": 1794485636154,
       "tag": "20261112121356_prototype_version_note",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794497669244,
+      "tag": "20261112153429_drop_prototypes",
+      "breakpoints": true
     }
   ]
 }

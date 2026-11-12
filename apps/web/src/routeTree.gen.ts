@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DeviceRouteImport } from './routes/device'
-import { Route as PrototypesPrototypeIdRouteImport } from './routes/prototypes/$prototypeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +22,31 @@ const DeviceRoute = DeviceRouteImport.update({
   path: '/device',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PrototypesPrototypeIdRoute = PrototypesPrototypeIdRouteImport.update({
-  id: '/prototypes/$prototypeId',
-  path: '/prototypes/$prototypeId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/device': typeof DeviceRoute
-  '/prototypes/$prototypeId': typeof PrototypesPrototypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/device': typeof DeviceRoute
-  '/prototypes/$prototypeId': typeof PrototypesPrototypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/device': typeof DeviceRoute
-  '/prototypes/$prototypeId': typeof PrototypesPrototypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/device' | '/prototypes/$prototypeId'
+  fullPaths: '/' | '/device'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/device' | '/prototypes/$prototypeId'
-  id: '__root__' | '/' | '/device' | '/prototypes/$prototypeId'
+  to: '/' | '/device'
+  id: '__root__' | '/' | '/device'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DeviceRoute: typeof DeviceRoute
-  PrototypesPrototypeIdRoute: typeof PrototypesPrototypeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,20 +65,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeviceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/prototypes/$prototypeId': {
-      id: '/prototypes/$prototypeId'
-      path: '/prototypes/$prototypeId'
-      fullPath: '/prototypes/$prototypeId'
-      preLoaderRoute: typeof PrototypesPrototypeIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DeviceRoute: DeviceRoute,
-  PrototypesPrototypeIdRoute: PrototypesPrototypeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

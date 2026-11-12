@@ -1,6 +1,5 @@
-import { z } from "@hono/zod-openapi";
 import { and, eq } from "drizzle-orm";
-import type { Context, MiddlewareHandler } from "hono";
+import type { Context } from "hono";
 import { authTables, getDb } from "../db/index.ts";
 import {
   gitHubProviderId,
@@ -12,9 +11,6 @@ import { bearerToken, withSessionCookie } from "./sessionCookie.ts";
 
 /** The signed-in user as the routes see them. */
 export type SessionUser = { id: string; name: string; email: string; image: string | null };
-
-/** What `requireUser` puts in the context for the routes behind it. */
-export type SignedInVariables = { user: SessionUser };
 
 /**
  * Reads the session the request carries, in the session cookie (the web app) or as
@@ -71,22 +67,3 @@ async function isStillAllowed(env: Env, userId: string): Promise<boolean> {
   if (!allowed) console.warn(JSON.stringify({ event: "session_refused", userId }));
   return allowed;
 }
-
-const Unauthorized = z.object({ error: z.literal("unauthorized") }).openapi("Unauthorized");
-
-/** The 401 that `requireUser` answers, for the `responses` of the routes behind it. */
-export const unauthorizedResponse = {
-  description: "The request carries no valid session.",
-  content: { "application/json": { schema: Unauthorized } },
-} as const;
-
-/** Lets only signed-in requests through, with the user in `c.var.user`; others get 401. */
-export const requireUser: MiddlewareHandler<{
-  Bindings: Env;
-  Variables: SignedInVariables;
-}> = async (c, next) => {
-  const user = await readSessionUser(c);
-  if (!user) return c.json({ error: "unauthorized" } as const, 401);
-  c.set("user", user);
-  return next();
-};

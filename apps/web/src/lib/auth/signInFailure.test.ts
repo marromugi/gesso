@@ -4,13 +4,13 @@ import { readSignInFailure } from "./signInFailure.ts";
 test("a refused GitHub user gets the refusal, and the URL loses only the error", () => {
   expect(
     readSignInFailure({
-      pathname: "/prototypes",
+      pathname: "/projects",
       searchStr: "?page=2&error=unable_to_get_user_info",
       hash: "top",
     }),
   ).toEqual({
     message: "この GitHub アカウントではサインインできません",
-    href: "/prototypes?page=2#top",
+    href: "/projects?page=2#top",
   });
 });
 

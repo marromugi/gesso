@@ -1,9 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"],
-    // The tests drive the templates' JavaScript, which runs in a browser and isn't checked here.
-    "allowJs": true
+    "types": ["node"]
   },
   "include": ["src"]
 }
