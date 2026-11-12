@@ -157,7 +157,36 @@ test("a version's note is written, replaced, and read back with the version", as
 
   expect((await writeNote("x".repeat(20_001))).status).toBe(400);
   expect((await writeNote("x", "mine", 999)).status).toBe(404);
-  expect((await writeNote("x", "theirs", 1)).status).toBe(404);
+  const kept = await request(`/prototypes/mine/versions/${number}`);
+  expect(await kept.json()).toMatchObject({ note: "ジャンプが重い\n敵が速すぎる" });
+});
+
+test("someone else's version's note can't be written", async () => {
+  const otherCookie = await signIn(platform.env, "other");
+  const hash = await hashContent(await new Blob(["their noted page"]).arrayBuffer());
+  await request(`/prototypes/theirs/files/${hash}`, {
+    method: "PUT",
+    headers: { "content-type": "application/octet-stream", cookie: otherCookie },
+    body: "their noted page",
+  });
+  const created = await request("/prototypes/theirs/versions", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: otherCookie },
+    body: JSON.stringify({ files: [{ path: "index.html", hash }] }),
+  });
+  const { number }: { number: number } = await created.json();
+
+  const response = await request(`/prototypes/theirs/versions/${number}/note`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ note: "上書き" }),
+  });
+
+  expect(response.status).toBe(404);
+  const theirs = await request(`/prototypes/theirs/versions/${number}`, {
+    headers: { cookie: otherCookie },
+  });
+  expect(await theirs.json()).toMatchObject({ note: "" });
 });
 
 test("a version with content not uploaded yet names it and makes nothing", async () => {

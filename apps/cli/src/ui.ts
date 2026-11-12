@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { cancel, intro, log, spinner } from "@clack/prompts";
 import { type ArgsDef, type CommandDef, type ParsedArgs, defineCommand } from "citty";
-import { createApiClient } from "./api/client.ts";
+import { type VersionSource, createApiClient } from "./api/client.ts";
 import { CliError } from "./cliError.ts";
 import { credentialsPath, requireCredentials } from "./credentials.ts";
 
@@ -72,6 +72,11 @@ export function versionNumber(text: string): number {
     throw new CliError(`--version は 1 以上の整数です: ${text}`);
   }
   return number;
+}
+
+/** Where a version came from, as `main a1b2c3d` (the web app's version list shows the same). */
+export function sourceLabel(source: VersionSource): string {
+  return `${source.branch ?? "ブランチなし"} ${shortCommit(source.commit)}`;
 }
 
 /** The first 7 characters of a commit, as git shows it. */

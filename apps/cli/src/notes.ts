@@ -13,7 +13,7 @@ export function notesToShow(
   number?: number,
 ): VersionNoteView[] {
   if (number === undefined) {
-    return versions.filter((version) => version.note.trim() !== "").map(view);
+    return versions.filter((version) => version.note !== "").map(view);
   }
   const version = versions.find((candidate) => candidate.number === number);
   if (version === undefined) throw new CliError(`版 ${number} はありません。`);

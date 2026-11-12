@@ -21,7 +21,7 @@ const atOnce = 8;
 const entryPath = "index.html";
 
 export type PullResult =
-  | { kind: "upToDate"; version: number }
+  | { kind: "upToDate"; version: number; note: string }
   | { kind: "noVersion"; initialized: boolean }
   | {
       kind: "pulled";
@@ -79,7 +79,9 @@ export async function pull(
   if (version !== noVersion && chosen === undefined) {
     throw new CliError(`プロトタイプ ${prototypeId} に版 ${version} はありません。`);
   }
-  if (manifest !== null && manifest.version === version) return { kind: "upToDate", version };
+  if (manifest !== null && manifest.version === version) {
+    return { kind: "upToDate", version, note: chosen?.note ?? "" };
+  }
   if (repo !== null && manifest === null && version !== noVersion && (await repo.head()) !== null) {
     throw new CliError(
       `${dir} は、まだどのプロトタイプとも結びついていない、commit のあるリポジトリです。版を取ってくると今のファイルとぶつかるので、空のフォルダーに pull してください。`,

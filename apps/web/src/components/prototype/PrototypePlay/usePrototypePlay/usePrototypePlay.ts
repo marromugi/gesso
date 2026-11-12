@@ -57,7 +57,7 @@ export type PrototypePlayState =
       name: string;
       versions: VersionItem[];
       player: PlayerState;
-      /** `null` when no version is being played. */
+      /** `null` when no version is being played, or the one asked for doesn't exist. */
       note: ShownNote | null;
     };
 
@@ -125,7 +125,7 @@ function versionItem(item: PrototypeVersion, shown: number | undefined): Version
     source:
       item.source === null
         ? null
-        : `${item.source.branch ?? "（ブランチなし）"} ${item.source.commit.slice(0, shortCommitLength)}`,
+        : `${item.source.branch ?? "ブランチなし"} ${item.source.commit.slice(0, shortCommitLength)}`,
     current: item.number === shown,
   };
 }

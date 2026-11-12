@@ -288,3 +288,75 @@ export const NoteSaveFails: Story = {
     await expect(await noteField()).toHaveValue("ジャンプが重い!");
   },
 };
+
+/** What `elsewhere` stories fetch through, so that their `play` can fetch the list again. */
+let elsewhereClient = createQueryClient();
+/** Version 2's note as the API has it in those stories; another tab may change it. */
+let elsewhereNote = "ジャンプが重い";
+
+const withElsewhereClient: NonNullable<Story["decorators"]> = [
+  (Story) => (
+    <QueryClientProvider client={elsewhereClient}>
+      <Story />
+    </QueryClientProvider>
+  ),
+];
+
+function fakeElsewhere() {
+  elsewhereClient = createQueryClient();
+  elsewhereNote = "ジャンプが重い";
+  return [
+    getListPrototypeVersionsMockHandler(() => ({
+      versions: notedVersions.map((version) =>
+        version.number === 2 ? { ...version, note: elsewhereNote } : version,
+      ),
+    })),
+    fakeNotes(),
+    ...fakeApi(notedVersions),
+  ];
+}
+
+/** Another tab saves version 2's note; as the list is fetched again (on focus), it shows here. */
+async function savedElsewhere(note: string) {
+  elsewhereNote = note;
+  await elsewhereClient.refetchQueries({ queryKey: getListPrototypeVersionsQueryKey(prototypeId) });
+}
+
+/** Not touched here, the note follows what was saved elsewhere, and saving can't undo it. */
+export const NoteFollowsSavedElsewhere: Story = {
+  decorators: withElsewhereClient,
+  beforeEach({ msw }) {
+    msw.use(...fakeElsewhere());
+  },
+  async play() {
+    await expect(await noteField()).toHaveValue("ジャンプが重い");
+
+    await savedElsewhere("ジャンプが重い\n別のタブで書いた");
+
+    await waitFor(async () => {
+      await expect(await noteField()).toHaveValue("ジャンプが重い\n別のタブで書いた");
+    });
+    await expect(screen.getByText("保存済み")).toBeVisible();
+    await expect(screen.getByRole("button", { name: "保存する" })).toBeDisabled();
+  },
+};
+
+/** Edited here while it was saved elsewhere: it says saving would overwrite that. */
+export const NoteChangedElsewhereWhileEditing: Story = {
+  decorators: withElsewhereClient,
+  beforeEach({ msw }) {
+    msw.use(...fakeElsewhere());
+  },
+  async play() {
+    await userEvent.type(await noteField(), "!");
+
+    await savedElsewhere("別のタブで書いた");
+
+    await expect(
+      await screen.findByText(
+        "このメモはほかの場所で書き換えられました。保存すると、それを上書きします",
+      ),
+    ).toBeVisible();
+    await expect(await noteField()).toHaveValue("ジャンプが重い!");
+  },
+};

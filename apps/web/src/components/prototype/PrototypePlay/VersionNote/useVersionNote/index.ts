@@ -1,1 +1,1 @@
-export { type VersionNoteEditor, useVersionNote } from "./useVersionNote.ts";
+export { type NoteStatus, type VersionNoteEditor, useVersionNote } from "./useVersionNote.ts";

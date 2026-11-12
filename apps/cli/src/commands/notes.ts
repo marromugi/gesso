@@ -1,6 +1,6 @@
 import { log, outro } from "@clack/prompts";
 import { notesToShow } from "../notes.ts";
-import { gessoCommand, shortCommit, signedInApi, versionNumber } from "../ui.ts";
+import { gessoCommand, signedInApi, sourceLabel, versionNumber } from "../ui.ts";
 
 export const notes = gessoCommand({
   name: "notes",
@@ -17,12 +17,9 @@ export const notes = gessoCommand({
       return;
     }
     for (const version of shown) {
-      const from =
-        version.source === null
-          ? ""
-          : `（${version.source.branch ?? "ブランチなし"} ${shortCommit(version.source.commit)}）`;
+      const from = version.source === null ? "" : `（${sourceLabel(version.source)}）`;
       log.step(`版 ${version.number}${from}`);
-      log.message(version.note.trim() === "" ? "（メモなし）" : version.note);
+      log.message(version.note === "" ? "（メモなし）" : version.note);
     }
     outro(`${shown.length} 個の版のメモ`);
   },

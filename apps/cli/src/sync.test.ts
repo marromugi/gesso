@@ -244,11 +244,21 @@ test("a repository with its own history isn't overwritten by a prototype's versi
   expect(await log()).toEqual(["Tester: edit"]);
 });
 
-test("pull brings the version's note along, for the next change", async () => {
+test("pull brings the version's own note along, even when it was pulled already", async () => {
   const api = fakeApi();
   api.addVersion({ "index.html": "<h1>1</h1>" }, "ジャンプが重い");
+  api.addVersion({ "index.html": "<h1>2</h1>" }, "敵が速すぎる");
 
-  expect(await pull(api.client, prototypeId, dir)).toMatchObject({ note: "ジャンプが重い" });
+  expect(await pull(api.client, prototypeId, dir, { number: 1 })).toMatchObject({
+    kind: "pulled",
+    note: "ジャンプが重い",
+  });
+  // The note may be written after the version was pulled.
+  expect(await pull(api.client, prototypeId, dir, { number: 1 })).toEqual({
+    kind: "upToDate",
+    version: 1,
+    note: "ジャンプが重い",
+  });
   await expect(pull(api.client, prototypeId, dir, { number: 5 })).rejects.toThrow(
     /版 5 はありません/,
   );

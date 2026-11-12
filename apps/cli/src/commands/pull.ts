@@ -28,6 +28,8 @@ export const pull = gessoCommand({
 
     if (result.kind === "upToDate") {
       running.stop(`版 ${result.version} は取り込み済みです`);
+      // Its note may have been written since it was pulled.
+      showNote(result.version, result.note);
       outro("変わりなし");
       return;
     }
@@ -39,7 +41,7 @@ export const pull = gessoCommand({
     }
     running.stop(`版 ${result.version} を取ってきました（${result.files} ファイル）`);
     if (result.initialized) log.info(`${dir} を git のリポジトリにしました`);
-    if (result.note.trim() !== "") log.info(`版 ${result.version} のメモ:\n${result.note}`);
+    showNote(result.version, result.note);
     if (result.merge.kind === "conflict") {
       log.warn(
         [
@@ -60,3 +62,8 @@ export const pull = gessoCommand({
     outro(dir);
   },
 });
+
+/** The version's note, for the next change to start from; nothing when it has none. */
+function showNote(version: number, note: string): void {
+  if (note !== "") log.info(`版 ${version} のメモ:\n${note}`);
+}
