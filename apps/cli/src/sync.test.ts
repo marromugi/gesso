@@ -32,7 +32,7 @@ afterAll(async () => {
  */
 function fakeApi() {
   const contents = new Map<string, Uint8Array>();
-  const versions: { files: VersionFile[]; source: VersionSource | null }[] = [];
+  const versions: { files: VersionFile[]; source: VersionSource | null; note: string }[] = [];
   const state = { uploads: 0 };
   const client: ApiClient = {
     me: async () => ({ name: "owner" }),
@@ -44,6 +44,8 @@ function fakeApi() {
           number: index + 1,
           createdAt: "2026-11-12T00:00:00.000Z",
           source: version.source,
+          note: version.note,
+          noteUpdatedAt: null,
         }))
         .toReversed(),
     versionFiles: async (_, number) => {
@@ -59,18 +61,18 @@ function fakeApi() {
     createVersion: async (_, files, source) => {
       const missing = files.map((file) => file.hash).filter((hash) => !contents.has(hash));
       if (missing.length > 0) return { kind: "missingContent", hashes: [...new Set(missing)] };
-      versions.push({ files, source });
+      versions.push({ files, source, note: "" });
       return { kind: "created", number: versions.length };
     },
   };
   /** Makes a version straight in the fake, as a push from elsewhere would. */
-  function addVersion(files: Record<string, string>) {
+  function addVersion(files: Record<string, string>, note = "") {
     const entries = Object.entries(files).map(([path, text]) => {
       const content = new TextEncoder().encode(text);
       contents.set(hashContent(content), content);
       return { path, hash: hashContent(content) };
     });
-    versions.push({ files: entries, source: null });
+    versions.push({ files: entries, source: null, note });
   }
   const paths = async (number: number) =>
     (await client.versionFiles(prototypeId, number)).map((file) => file.path);
@@ -240,6 +242,16 @@ test("a repository with its own history isn't overwritten by a prototype's versi
 
   expect((await readdir(dir)).toSorted()).toEqual([".git", "package.json", "src"]);
   expect(await log()).toEqual(["Tester: edit"]);
+});
+
+test("pull brings the version's note along, for the next change", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" }, "ジャンプが重い");
+
+  expect(await pull(api.client, prototypeId, dir)).toMatchObject({ note: "ジャンプが重い" });
+  await expect(pull(api.client, prototypeId, dir, { number: 5 })).rejects.toThrow(
+    /版 5 はありません/,
+  );
 });
 
 test("pull merges a newer version into local commits, keeping both", async () => {

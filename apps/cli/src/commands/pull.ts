@@ -1,7 +1,6 @@
 import { log, outro } from "@clack/prompts";
-import { CliError } from "../cliError.ts";
 import { pull as pullVersion } from "../sync.ts";
-import { fromHere, gessoCommand, progress, signedInApi } from "../ui.ts";
+import { fromHere, gessoCommand, progress, signedInApi, versionNumber } from "../ui.ts";
 
 export const pull = gessoCommand({
   name: "pull",
@@ -40,6 +39,7 @@ export const pull = gessoCommand({
     }
     running.stop(`版 ${result.version} を取ってきました（${result.files} ファイル）`);
     if (result.initialized) log.info(`${dir} を git のリポジトリにしました`);
+    if (result.note.trim() !== "") log.info(`版 ${result.version} のメモ:\n${result.note}`);
     if (result.merge.kind === "conflict") {
       log.warn(
         [
@@ -60,11 +60,3 @@ export const pull = gessoCommand({
     outro(dir);
   },
 });
-
-function versionNumber(text: string): number {
-  const number = Number(text);
-  if (!Number.isInteger(number) || number < 1) {
-    throw new CliError(`--version は 1 以上の整数です: ${text}`);
-  }
-  return number;
-}

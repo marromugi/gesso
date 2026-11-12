@@ -78,7 +78,9 @@ export const ListPrototypeVersionsResponse = v.object({
   source: v.union([v.object({
   commit: v.pipe(v.string(), v.regex(new RegExp('^(?:[0-9a-f]{40}|[0-9a-f]{64})$')), v.description('The git commit, as SHA-1 or SHA-256 hex.')),
   branch: v.nullable(v.pipe(v.string(), v.minLength(1), v.check((value) => value.length <= 255 || (value.length <= 510 && [...value].length <= 255), 'Invalid length: Expected <=255'), v.description('The branch the commit was on; `null` when detached.')))
-}), v.null()])
+}), v.null()]),
+  note: v.pipe(v.string(), v.description('The person\'s note on the version; empty for none.')),
+  noteUpdatedAt: v.nullable(v.string())
 }))
 })
 
@@ -104,7 +106,9 @@ export const CreatePrototypeVersionResponse = v.intersect([v.object({
   source: v.union([v.object({
   commit: v.pipe(v.string(), v.regex(new RegExp('^(?:[0-9a-f]{40}|[0-9a-f]{64})$')), v.description('The git commit, as SHA-1 or SHA-256 hex.')),
   branch: v.nullable(v.pipe(v.string(), v.minLength(1), v.check((value) => value.length <= 255 || (value.length <= 510 && [...value].length <= 255), 'Invalid length: Expected <=255'), v.description('The branch the commit was on; `null` when detached.')))
-}), v.null()])
+}), v.null()]),
+  note: v.pipe(v.string(), v.description('The person\'s note on the version; empty for none.')),
+  noteUpdatedAt: v.nullable(v.string())
 }), v.object({
   files: v.array(v.object({
   path: v.string(),
@@ -125,7 +129,9 @@ export const GetPrototypeVersionResponse = v.intersect([v.object({
   source: v.union([v.object({
   commit: v.pipe(v.string(), v.regex(new RegExp('^(?:[0-9a-f]{40}|[0-9a-f]{64})$')), v.description('The git commit, as SHA-1 or SHA-256 hex.')),
   branch: v.nullable(v.pipe(v.string(), v.minLength(1), v.check((value) => value.length <= 255 || (value.length <= 510 && [...value].length <= 255), 'Invalid length: Expected <=255'), v.description('The branch the commit was on; `null` when detached.')))
-}), v.null()])
+}), v.null()]),
+  note: v.pipe(v.string(), v.description('The person\'s note on the version; empty for none.')),
+  noteUpdatedAt: v.nullable(v.string())
 }), v.object({
   files: v.array(v.object({
   path: v.string(),
@@ -133,6 +139,21 @@ export const GetPrototypeVersionResponse = v.intersect([v.object({
   size: v.pipe(v.number(), v.integer())
 }))
 })])
+
+
+export const WritePrototypeVersionNoteParams = v.object({
+  prototypeId: v.string(),
+  number: v.pipe(v.number(), v.integer(), v.minValue(1))
+})
+
+export const WritePrototypeVersionNoteBody = v.object({
+  note: v.pipe(v.string(), v.check((value) => value.length <= 20000 || (value.length <= 40000 && [...value].length <= 20000), 'Invalid length: Expected <=20000'))
+})
+
+export const WritePrototypeVersionNoteResponse = v.object({
+  note: v.string(),
+  noteUpdatedAt: v.nullable(v.string())
+})
 
 
 export const CreatePrototypePlayUrlParams = v.object({

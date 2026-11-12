@@ -49,7 +49,7 @@ export const prototypeFileContent = sqliteTable(
   (table) => [primaryKey({ columns: [table.prototypeId, table.hash] })],
 );
 
-/** A snapshot of a prototype's files. Never changed once made. */
+/** A snapshot of a prototype's files, which never change once made, with a note about it. */
 export const prototypeVersion = sqliteTable(
   "prototypeVersion",
   {
@@ -63,6 +63,10 @@ export const prototypeVersion = sqliteTable(
     sourceCommit: text("sourceCommit"),
     /** The branch that commit was on, when it was on one. */
     sourceBranch: text("sourceBranch"),
+    /** What the person noticed playing it, for whoever works on the next version; "" for none. */
+    note: text("note").notNull().default(""),
+    /** When the note was last written; `null` until it is. */
+    noteUpdatedAt: text("noteUpdatedAt"),
     createdAt: text("createdAt").notNull(),
   },
   (table) => [

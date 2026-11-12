@@ -65,6 +65,15 @@ export function fromHere(folder: string): string {
   return resolve(process.env.INIT_CWD ?? process.cwd(), folder);
 }
 
+/** A version's number given as `--version`; throws `CliError` for anything but 1, 2, 3… */
+export function versionNumber(text: string): number {
+  const number = Number(text);
+  if (!Number.isInteger(number) || number < 1) {
+    throw new CliError(`--version は 1 以上の整数です: ${text}`);
+  }
+  return number;
+}
+
 /** The first 7 characters of a commit, as git shows it. */
 export function shortCommit(commit: string): string {
   return commit.slice(0, 7);

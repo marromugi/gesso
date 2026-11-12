@@ -6,6 +6,8 @@
 pnpm gesso login                         # ブラウザで承認してサインインする
 pnpm gesso list                          # 自分のプロトタイプの ID と名前
 pnpm gesso versions <ID>                 # プロトタイプの版（新しい順、元の commit つき）
+pnpm gesso notes <ID>                    # メモのある版のメモ（新しい順）
+pnpm gesso notes <ID> --version 3        # 版 3 のメモ
 pnpm gesso pull <ID> <dir>               # いちばん新しい版を <dir> の git に取り込む
 pnpm gesso pull <ID> <dir> --version 3   # 版 3 を取ってくる
 pnpm gesso push <dir>                    # <dir> の最新の commit を次の版として送る
@@ -33,6 +35,10 @@ pnpm gesso logout                        # gesso のセッションを終え、�
 - リポジトリが取り込んだ版より新しい版があると、`push` は送らない（そのまま送ると、新しい版の変更が抜ける）。`pull` で取り込んでから送るか、`--force` で送る。
 - まだ版のないプロトタイプは、`pull` で空のリポジトリを用意し、`index.html` を置いて commit してから `push` すると版 1 ができる。
 - どのプロトタイプの、どの版と同期したかは `.git/gesso.json` に置く（git の差分には出ない。worktree もこれを共有する）。
+
+## メモ
+
+版ごとに 1 つのメモがある。人が gesso のプロトタイプの画面で遊びながら、気づいたこと（「ジャンプが重い」など）を書く。次の版を作るときは、`notes` でメモを読んでから直す。`pull` も、取り込んだ版のメモを出す。
 
 ## 版に入るもの
 

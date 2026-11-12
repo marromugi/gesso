@@ -16,6 +16,7 @@ import {
   listVersions,
   readFileContent,
   saveFileContent,
+  writeNote,
 } from "./versionStore.ts";
 
 const Hash = z.string().regex(hashPattern).openapi({ description: "SHA-256 as lowercase hex." });
@@ -27,6 +28,9 @@ const VersionParams = PrototypeParams.extend({ number: z.coerce.number().int().m
 const badRequestResponse = {
   description: "The path or body is not valid; the body lists the problems.",
 } as const;
+
+/** The longest note a version takes, in characters. */
+const maxNoteLength = 20_000;
 
 /** A git commit's name: SHA-1 (40) or, in a SHA-256 repository, 64 hex characters. */
 const commitPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
@@ -55,8 +59,16 @@ const PrototypeVersion = z
     createdAt: z.string(),
     // A union, not `.nullable()`, which would make the shared VersionSource itself nullable.
     source: z.union([VersionSource, z.null()]),
+    note: z.string().openapi({ description: "The person's note on the version; empty for none." }),
+    noteUpdatedAt: z.string().nullable(),
   })
   .openapi("PrototypeVersion");
+
+const VersionNote = z
+  .object({ note: z.string(), noteUpdatedAt: z.string().nullable() })
+  .openapi("VersionNote");
+
+const NewVersionNote = z.object({ note: z.string().max(maxNoteLength) }).openapi("NewVersionNote");
 
 const PrototypeVersionList = z
   .object({ versions: z.array(PrototypeVersion) })
@@ -196,6 +208,26 @@ const getVersionRoute = createRoute({
   },
 });
 
+const writeNoteRoute = createRoute({
+  method: "put",
+  path: "/{prototypeId}/versions/{number}/note",
+  operationId: "writePrototypeVersionNote",
+  middleware: [requireUser] as const,
+  request: {
+    params: VersionParams,
+    body: { required: true, content: { "application/json": { schema: NewVersionNote } } },
+  },
+  responses: {
+    200: {
+      description: "The version's note, replaced.",
+      content: { "application/json": { schema: VersionNote } },
+    },
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+  },
+});
+
 const PlayUrl = z
   .object({
     url: z.string().openapi({ description: "The version's index.html on the play Worker." }),
@@ -294,6 +326,19 @@ export const versionRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedI
     const version = await getVersion(getDb(c.env.DB), c.var.user.id, prototypeId, number);
     if (!version) return c.json(notFound, 404);
     return c.json(version, 200);
+  })
+  .openapi(writeNoteRoute, async (c) => {
+    const { prototypeId, number } = c.req.valid("param");
+    const written = await writeNote(
+      getDb(c.env.DB),
+      c.var.user.id,
+      prototypeId,
+      number,
+      c.req.valid("json").note,
+      new Date(),
+    );
+    if (!written) return c.json(notFound, 404);
+    return c.json(written, 200);
   })
   .openapi(createPlayUrlRoute, async (c) => {
     const { prototypeId, number } = c.req.valid("param");

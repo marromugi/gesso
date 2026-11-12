@@ -104,6 +104,10 @@ export interface PrototypeVersion {
   number: number;
   createdAt: string;
   source: VersionSource | null;
+  /** The person's note on the version; empty for none. */
+  note: string;
+  /** @nullable */
+  noteUpdatedAt: string | null;
 }
 
 export interface PrototypeVersionList {
@@ -150,6 +154,17 @@ export type NewPrototypeVersionFilesItem = {
 export interface NewPrototypeVersion {
   files: NewPrototypeVersionFilesItem[];
   source?: VersionSource;
+}
+
+export interface VersionNote {
+  note: string;
+  /** @nullable */
+  noteUpdatedAt: string | null;
+}
+
+export interface NewVersionNote {
+  /** @maxLength 20000 */
+  note: string;
 }
 
 export interface PlayUrl {
@@ -709,6 +724,73 @@ export const getPrototypeVersion = async (prototypeId: string,
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type writePrototypeVersionNoteResponse200 = {
+  data: VersionNote
+  status: 200
+}
+
+export type writePrototypeVersionNoteResponse400 = {
+  data: void
+  status: 400
+}
+
+export type writePrototypeVersionNoteResponse401 = {
+  data: Unauthorized
+  status: 401
+}
+
+export type writePrototypeVersionNoteResponse404 = {
+  data: NotFound
+  status: 404
+}
+
+export type writePrototypeVersionNoteResponseSuccess = (writePrototypeVersionNoteResponse200) & {
+  headers: Headers;
+};
+export type writePrototypeVersionNoteResponseError = (writePrototypeVersionNoteResponse400 | writePrototypeVersionNoteResponse401 | writePrototypeVersionNoteResponse404) & {
+  headers: Headers;
+};
+
+export type writePrototypeVersionNoteResponse = (writePrototypeVersionNoteResponseSuccess | writePrototypeVersionNoteResponseError)
+
+export const getWritePrototypeVersionNoteUrl = (prototypeId: string,
+    number: number,) => {
+
+
+
+
+  return `/prototypes/${prototypeId}/versions/${number}/note`
+}
+
+export const writePrototypeVersionNote = async (prototypeId: string,
+    number: number,
+    newVersionNote: NewVersionNote, options?: Parameters<typeof request>[1]): Promise<writePrototypeVersionNoteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return request<writePrototypeVersionNoteResponse>(getWritePrototypeVersionNoteUrl(prototypeId,number),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(newVersionNote)
   }
 );}
 

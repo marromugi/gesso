@@ -75,17 +75,21 @@ test("versions are numbered from 1, newest first, and keep their files", async (
   expect(v1).toMatchObject({ kind: "created", version: { number: 1 } });
   expect(v2).toMatchObject({ kind: "created", version: { number: 2 } });
   expect(await listVersions(db, owner, "numbered")).toEqual([
-    { number: 2, createdAt: now.toISOString(), source: null },
+    { number: 2, createdAt: now.toISOString(), source: null, note: "", noteUpdatedAt: null },
     {
       number: 1,
       createdAt: now.toISOString(),
       source: { commit: "a".repeat(40), branch: "main" },
+      note: "",
+      noteUpdatedAt: null,
     },
   ]);
   expect(await getVersion(db, owner, "numbered", 1)).toEqual({
     number: 1,
     createdAt: now.toISOString(),
     source: { commit: "a".repeat(40), branch: "main" },
+    note: "",
+    noteUpdatedAt: null,
     files: [
       { path: "game.js", hash: first, size: 7 },
       { path: "index.html", hash: page, size: 29 },

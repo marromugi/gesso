@@ -125,6 +125,41 @@ test("a version keeps the commit it was made from, and a malformed one is refuse
   expect((await send({ source: { commit: "HEAD", branch: null } })).status).toBe(400);
 });
 
+test("a version's note is written, replaced, and read back with the version", async () => {
+  const page = await upload("mine", "<h1>noted</h1>");
+  const created = await postVersion("mine", [{ path: "index.html", hash: page.hash }]);
+  const { number }: { number: number } = await created.json();
+  const writeNote = (note: unknown, prototypeId = "mine", at = number) =>
+    request(`/prototypes/${prototypeId}/versions/${at}/note`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ note }),
+    });
+
+  expect(await (await writeNote("ジャンプが重い")).json()).toMatchObject({
+    note: "ジャンプが重い",
+  });
+  const replaced = await writeNote("ジャンプが重い\n敵が速すぎる");
+  const { noteUpdatedAt }: { noteUpdatedAt: string } = await replaced.json();
+  expect(noteUpdatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+  const detail = await request(`/prototypes/mine/versions/${number}`);
+  expect(await detail.json()).toMatchObject({
+    note: "ジャンプが重い\n敵が速すぎる",
+    noteUpdatedAt,
+  });
+  const { versions }: { versions: { number: number; note: string }[] } = await (
+    await request("/prototypes/mine/versions")
+  ).json();
+  expect(versions.find((version) => version.number === number)?.note).toBe(
+    "ジャンプが重い\n敵が速すぎる",
+  );
+
+  expect((await writeNote("x".repeat(20_001))).status).toBe(400);
+  expect((await writeNote("x", "mine", 999)).status).toBe(404);
+  expect((await writeNote("x", "theirs", 1)).status).toBe(404);
+});
+
 test("a version with content not uploaded yet names it and makes nothing", async () => {
   const before = await versionNumbers("mine");
   const page = await upload("mine", "<h1>missing</h1>");

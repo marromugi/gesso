@@ -28,6 +28,8 @@ export type PullResult =
       version: number;
       initialized: boolean;
       files: number;
+      /** The person's note on the version; "" for none. */
+      note: string;
       /** How the version's commit came into the branch; a conflict is left for the person. */
       merge: MergeResult;
     };
@@ -71,7 +73,12 @@ export async function pull(
     );
   }
 
-  const version = number ?? (await newestVersion(api, prototypeId))?.number ?? noVersion;
+  const versions = await api.listVersions(prototypeId);
+  const version = number ?? versions[0]?.number ?? noVersion;
+  const chosen = versions.find((candidate) => candidate.number === version);
+  if (version !== noVersion && chosen === undefined) {
+    throw new CliError(`プロトタイプ ${prototypeId} に版 ${version} はありません。`);
+  }
   if (manifest !== null && manifest.version === version) return { kind: "upToDate", version };
   if (repo !== null && manifest === null && version !== noVersion && (await repo.head()) !== null) {
     throw new CliError(
@@ -110,7 +117,14 @@ export async function pull(
   const commit = await repo.versionCommit(contents, base, `gesso 版 ${version}`);
   const merge = await repo.mergeIn(commit, `gesso 版 ${version} を取り込む`);
   await writeManifest(gitDir, { prototypeId, version, commit });
-  return { kind: "pulled", version, initialized, files: files.length, merge };
+  return {
+    kind: "pulled",
+    version,
+    initialized,
+    files: files.length,
+    note: chosen?.note ?? "",
+    merge,
+  };
 }
 
 /** A committed path that a version never holds, and why. */

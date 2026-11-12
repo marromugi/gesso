@@ -17,7 +17,14 @@ export type PrototypeVersion = {
   createdAt: string;
   /** `null` when the client sent no commit. */
   source: VersionSource | null;
+  /** The person's note on it; "" for none. */
+  note: string;
+  /** When the note was last written; `null` until it is. */
+  noteUpdatedAt: string | null;
 };
+
+/** A version's note as just written. */
+export type VersionNote = Pick<PrototypeVersion, "note" | "noteUpdatedAt">;
 
 /** What is read for each version: what `toVersion` turns into a `PrototypeVersion`. */
 const versionColumns = {
@@ -25,6 +32,8 @@ const versionColumns = {
   createdAt: prototypeVersion.createdAt,
   sourceCommit: prototypeVersion.sourceCommit,
   sourceBranch: prototypeVersion.sourceBranch,
+  note: prototypeVersion.note,
+  noteUpdatedAt: prototypeVersion.noteUpdatedAt,
 };
 
 function toVersion(row: {
@@ -32,12 +41,16 @@ function toVersion(row: {
   createdAt: string;
   sourceCommit: string | null;
   sourceBranch: string | null;
+  note: string;
+  noteUpdatedAt: string | null;
 }): PrototypeVersion {
   return {
     number: row.number,
     createdAt: row.createdAt,
     source:
       row.sourceCommit === null ? null : { commit: row.sourceCommit, branch: row.sourceBranch },
+    note: row.note,
+    noteUpdatedAt: row.noteUpdatedAt,
   };
 }
 
@@ -132,6 +145,27 @@ export async function createVersion(
     .map((file) => ({ path: file.path, hash: file.hash, size: sizes.get(file.hash) ?? 0 }))
     .toSorted((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   return { kind: "created", version: { ...toVersion(row), files: entries } };
+}
+
+/**
+ * Replaces the note on the owner's prototype's version `number`, or `null` when there is no
+ * such version of theirs.
+ */
+export async function writeNote(
+  db: Db,
+  ownerId: string,
+  prototypeId: string,
+  number: number,
+  note: string,
+  now: Date,
+): Promise<VersionNote | null> {
+  if (!(await ownsPrototype(db, ownerId, prototypeId))) return null;
+  const [written] = await db
+    .update(prototypeVersion)
+    .set({ note, noteUpdatedAt: now.toISOString() })
+    .where(and(eq(prototypeVersion.prototypeId, prototypeId), eq(prototypeVersion.number, number)))
+    .returning({ note: prototypeVersion.note, noteUpdatedAt: prototypeVersion.noteUpdatedAt });
+  return written ?? null;
 }
 
 /** The owner's prototype's versions, newest first, or `null` when it isn't theirs. */

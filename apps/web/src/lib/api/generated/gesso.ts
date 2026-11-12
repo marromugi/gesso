@@ -124,6 +124,10 @@ export interface PrototypeVersion {
   number: number;
   createdAt: string;
   source: VersionSource | null;
+  /** The person's note on the version; empty for none. */
+  note: string;
+  /** @nullable */
+  noteUpdatedAt: string | null;
 }
 
 export interface PrototypeVersionList {
@@ -170,6 +174,17 @@ export type NewPrototypeVersionFilesItem = {
 export interface NewPrototypeVersion {
   files: NewPrototypeVersionFilesItem[];
   source?: VersionSource;
+}
+
+export interface VersionNote {
+  note: string;
+  /** @nullable */
+  noteUpdatedAt: string | null;
+}
+
+export interface NewVersionNote {
+  /** @maxLength 20000 */
+  note: string;
 }
 
 export interface PlayUrl {
@@ -1188,6 +1203,91 @@ export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getProt
 
 
 
+
+export const getWritePrototypeVersionNoteUrl = (prototypeId: string,
+    number: number,) => {
+
+
+
+
+  return `/prototypes/${prototypeId}/versions/${number}/note`
+}
+
+export const writePrototypeVersionNote = async (prototypeId: string,
+    number: number,
+    newVersionNote: NewVersionNote, options?: Parameters<typeof fetchApi>[1]): Promise<VersionNote> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return fetchApi<VersionNote>(getWritePrototypeVersionNoteUrl(prototypeId,number),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(newVersionNote)
+  }
+);}
+
+
+
+
+
+export const getWritePrototypeVersionNoteMutationKey = () => ['writePrototypeVersionNote'] as const;
+
+export const getWritePrototypeVersionNoteMutationOptions = <TError = ErrorType<void | Unauthorized | NotFound>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof writePrototypeVersionNote>>, TError,WritePrototypeVersionNoteMutationVariables, TContext>, request?: SecondParameter<typeof fetchApi>}
+): UseMutationOptions<Awaited<ReturnType<typeof writePrototypeVersionNote>>, TError,WritePrototypeVersionNoteMutationVariables, TContext> => {
+
+const mutationKey = getWritePrototypeVersionNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof writePrototypeVersionNote>>, WritePrototypeVersionNoteMutationVariables> = (props) => {
+          const {prototypeId,number,data} = props ?? {};
+
+          return  writePrototypeVersionNote(prototypeId,number,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type WritePrototypeVersionNoteMutationResult = NonNullable<Awaited<ReturnType<typeof writePrototypeVersionNote>>>
+    export type WritePrototypeVersionNoteMutationBody = NewVersionNote
+    export type WritePrototypeVersionNoteMutationError = ErrorType<void | Unauthorized | NotFound>
+    export type WritePrototypeVersionNoteMutationVariables = {prototypeId: string;number: number;data: NewVersionNote}
+
+    export const useWritePrototypeVersionNote = <TError = ErrorType<void | Unauthorized | NotFound>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof writePrototypeVersionNote>>, TError,WritePrototypeVersionNoteMutationVariables, TContext>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof writePrototypeVersionNote>>,
+        TError,
+        WritePrototypeVersionNoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getWritePrototypeVersionNoteMutationOptions(options), queryClient);
+    }
 
 export const getCreatePrototypePlayUrlUrl = (prototypeId: string,
     number: number,) => {

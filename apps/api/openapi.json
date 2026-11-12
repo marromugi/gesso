@@ -194,12 +194,24 @@
                 "type": "null"
               }
             ]
+          },
+          "note": {
+            "type": "string",
+            "description": "The person's note on the version; empty for none."
+          },
+          "noteUpdatedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
           "number",
           "createdAt",
-          "source"
+          "source",
+          "note",
+          "noteUpdatedAt"
         ]
       },
       "VersionSource": {
@@ -320,6 +332,36 @@
         },
         "required": [
           "files"
+        ]
+      },
+      "VersionNote": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "noteUpdatedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "note",
+          "noteUpdatedAt"
+        ]
+      },
+      "NewVersionNote": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 20000
+          }
+        },
+        "required": [
+          "note"
         ]
       },
       "PlayUrl": {
@@ -789,6 +831,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PrototypeVersionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}/versions/{number}/note": {
+      "put": {
+        "operationId": "writePrototypeVersionNote",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": true,
+            "name": "number",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewVersionNote"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The version's note, replaced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionNote"
                 }
               }
             }
