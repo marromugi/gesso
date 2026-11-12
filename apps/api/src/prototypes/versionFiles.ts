@@ -30,15 +30,27 @@ export function isFilePath(path: string): boolean {
 }
 
 /**
- * What is wrong with a version's list of files as a whole, or `null` when it can be saved. Each
- * path is assumed to pass `isFilePath` already.
+ * What is wrong with a version's list of files as a whole, or `null` when it can be saved: the
+ * files must fit on any disk as a tree, with `index.html` at the root. Each path is assumed to
+ * pass `isFilePath` already.
  */
 export function versionFilesProblem(files: readonly VersionFile[]): string | null {
   if (files.length > maxFilesPerVersion) return `more than ${maxFilesPerVersion} files`;
-  const paths = new Set<string>();
+  // Compared without case: on macOS and Windows disks, `A.js` and `a.js` are the same file.
+  const paths = new Map<string, string>();
   for (const { path } of files) {
-    if (paths.has(path)) return `${path} is listed twice`;
-    paths.add(path);
+    const key = path.toLowerCase();
+    const earlier = paths.get(key);
+    if (earlier === path) return `${path} is listed twice`;
+    if (earlier !== undefined) return `${earlier} and ${path} differ only in case`;
+    paths.set(key, path);
+  }
+  for (const [key, path] of paths) {
+    const segments = key.split("/");
+    for (let end = 1; end < segments.length; end += 1) {
+      const directory = paths.get(segments.slice(0, end).join("/"));
+      if (directory !== undefined) return `${directory} is a file and a directory of ${path}`;
+    }
   }
   if (!paths.has(entryPath)) return `no ${entryPath} at the root`;
   return null;

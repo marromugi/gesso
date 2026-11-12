@@ -29,6 +29,10 @@ const notFoundResponse = {
   content: { "application/json": { schema: NotFound } },
 } as const;
 
+const badRequestResponse = {
+  description: "The path or body is not valid; the body lists the problems.",
+} as const;
+
 const PrototypeVersion = z
   .object({ number: z.number().int(), createdAt: z.string() })
   .openapi("PrototypeVersion");
@@ -83,14 +87,15 @@ const putFileContentRoute = createRoute({
   },
   responses: {
     204: { description: "The content is saved under its hash (or already was)." },
-    400: {
-      description: "The content's SHA-256 is not the hash in the path.",
-      content: { "application/json": { schema: HashMismatch } },
-    },
+    400: badRequestResponse,
     401: unauthorizedResponse,
     404: notFoundResponse,
     411: { description: "The request has no Content-Length." },
     413: { description: `The content is larger than ${maxFileSize} bytes.` },
+    422: {
+      description: "The content's SHA-256 is not the hash in the path.",
+      content: { "application/json": { schema: HashMismatch } },
+    },
   },
 });
 
@@ -101,6 +106,7 @@ const getFileContentRoute = createRoute({
   middleware: [requireUser] as const,
   request: { params: FileParams },
   responses: {
+    400: badRequestResponse,
     200: {
       description: "The content, as a download: it is never run on this origin.",
       content: { "application/octet-stream": { schema: z.string().openapi({ format: "binary" }) } },
@@ -117,6 +123,7 @@ const listVersionsRoute = createRoute({
   middleware: [requireUser] as const,
   request: { params: PrototypeParams },
   responses: {
+    400: badRequestResponse,
     200: {
       description: "The prototype's versions, newest first.",
       content: { "application/json": { schema: PrototypeVersionList } },
@@ -140,7 +147,7 @@ const createVersionRoute = createRoute({
       description: "The prototype's next version, made from the files.",
       content: { "application/json": { schema: PrototypeVersionDetail } },
     },
-    400: { description: "The body is not a valid list of files." },
+    400: badRequestResponse,
     401: unauthorizedResponse,
     404: notFoundResponse,
     409: {
@@ -157,6 +164,7 @@ const getVersionRoute = createRoute({
   middleware: [requireUser] as const,
   request: { params: VersionParams },
   responses: {
+    400: badRequestResponse,
     200: {
       description: "The version with its files, sorted by path.",
       content: { "application/json": { schema: PrototypeVersionDetail } },
@@ -192,7 +200,7 @@ export const versionRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedI
     );
     if (result.kind === "notFound") return c.json(notFound, 404);
     if (result.kind === "hashMismatch") {
-      return c.json({ error: "hash_mismatch", actual: result.actual } as const, 400);
+      return c.json({ error: "hash_mismatch", actual: result.actual } as const, 422);
     }
     return c.body(null, 204);
   })

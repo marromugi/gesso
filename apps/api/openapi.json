@@ -128,6 +128,20 @@
           "name"
         ]
       },
+      "NotFound": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "not_found"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
       "HashMismatch": {
         "type": "object",
         "properties": {
@@ -146,20 +160,6 @@
         "required": [
           "error",
           "actual"
-        ]
-      },
-      "NotFound": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "enum": [
-              "not_found"
-            ]
-          }
-        },
-        "required": [
-          "error"
         ]
       },
       "PrototypeVersionList": {
@@ -428,14 +428,7 @@
             "description": "The content is saved under its hash (or already was)."
           },
           "400": {
-            "description": "The content's SHA-256 is not the hash in the path.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HashMismatch"
-                }
-              }
-            }
+            "description": "The path or body is not valid; the body lists the problems."
           },
           "401": {
             "description": "The request carries no valid session.",
@@ -462,6 +455,16 @@
           },
           "413": {
             "description": "The content is larger than 10485760 bytes."
+          },
+          "422": {
+            "description": "The content's SHA-256 is not the hash in the path.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HashMismatch"
+                }
+              }
+            }
           }
         }
       },
@@ -499,6 +502,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
           },
           "401": {
             "description": "The request carries no valid session.",
@@ -546,6 +552,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
           },
           "401": {
             "description": "The request carries no valid session.",
@@ -603,7 +612,7 @@
             }
           },
           "400": {
-            "description": "The body is not a valid list of files."
+            "description": "The path or body is not valid; the body lists the problems."
           },
           "401": {
             "description": "The request carries no valid session.",
@@ -670,6 +679,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
           },
           "401": {
             "description": "The request carries no valid session.",

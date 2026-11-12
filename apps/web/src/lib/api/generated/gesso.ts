@@ -78,6 +78,17 @@ export interface NewPrototype {
   name: string;
 }
 
+export type NotFoundError = typeof NotFoundError[keyof typeof NotFoundError];
+
+
+export const NotFoundError = {
+  not_found: 'not_found',
+} as const;
+
+export interface NotFound {
+  error: NotFoundError;
+}
+
 export type HashMismatchError = typeof HashMismatchError[keyof typeof HashMismatchError];
 
 
@@ -92,17 +103,6 @@ export interface HashMismatch {
      * @pattern ^[0-9a-f]{64}$
      */
   actual: string;
-}
-
-export type NotFoundError = typeof NotFoundError[keyof typeof NotFoundError];
-
-
-export const NotFoundError = {
-  not_found: 'not_found',
-} as const;
-
-export interface NotFound {
-  error: NotFoundError;
 }
 
 export interface PrototypeVersion {
@@ -580,7 +580,7 @@ return fetchApi<void>(getPutPrototypeFileContentUrl(prototypeId,hash),
 
 export const getPutPrototypeFileContentMutationKey = () => ['putPrototypeFileContent'] as const;
 
-export const getPutPrototypeFileContentMutationOptions = <TError = ErrorType<HashMismatch | Unauthorized | NotFound | void>,
+export const getPutPrototypeFileContentMutationOptions = <TError = ErrorType<void | Unauthorized | NotFound | HashMismatch>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putPrototypeFileContent>>, TError,PutPrototypeFileContentMutationVariables, TContext>, request?: SecondParameter<typeof fetchApi>}
 ): UseMutationOptions<Awaited<ReturnType<typeof putPrototypeFileContent>>, TError,PutPrototypeFileContentMutationVariables, TContext> => {
 
@@ -609,10 +609,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type PutPrototypeFileContentMutationResult = NonNullable<Awaited<ReturnType<typeof putPrototypeFileContent>>>
     export type PutPrototypeFileContentMutationBody = Blob
-    export type PutPrototypeFileContentMutationError = ErrorType<HashMismatch | Unauthorized | NotFound | void>
+    export type PutPrototypeFileContentMutationError = ErrorType<void | Unauthorized | NotFound | HashMismatch>
     export type PutPrototypeFileContentMutationVariables = {prototypeId: string;hash: string;data: Blob}
 
-    export const usePutPrototypeFileContent = <TError = ErrorType<HashMismatch | Unauthorized | NotFound | void>,
+    export const usePutPrototypeFileContent = <TError = ErrorType<void | Unauthorized | NotFound | HashMismatch>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putPrototypeFileContent>>, TError,PutPrototypeFileContentMutationVariables, TContext>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof putPrototypeFileContent>>,
@@ -656,7 +656,7 @@ export const getGetPrototypeFileContentQueryKey = (prototypeId: string,
     }
 
 
-export const getGetPrototypeFileContentQueryOptions = <TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<Unauthorized | NotFound>>(prototypeId: string,
+export const getGetPrototypeFileContentQueryOptions = <TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<void | Unauthorized | NotFound>>(prototypeId: string,
     hash: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeFileContent>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
 ) => {
 
@@ -676,10 +676,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetPrototypeFileContentQueryResult = NonNullable<Awaited<ReturnType<typeof getPrototypeFileContent>>>
-export type GetPrototypeFileContentQueryError = ErrorType<Unauthorized | NotFound>
+export type GetPrototypeFileContentQueryError = ErrorType<void | Unauthorized | NotFound>
 
 
-export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     hash: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeFileContent>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -690,7 +690,7 @@ export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof get
       >, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     hash: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeFileContent>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -701,12 +701,12 @@ export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof get
       >, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     hash: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeFileContent>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeFileContent<TData = Awaited<ReturnType<typeof getPrototypeFileContent>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     hash: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeFileContent>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
@@ -755,7 +755,7 @@ export const getListPrototypeVersionsQueryKey = (prototypeId: string,) => {
     }
 
 
-export const getListPrototypeVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<Unauthorized | NotFound>>(prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypeVersions>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+export const getListPrototypeVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<void | Unauthorized | NotFound>>(prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypeVersions>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -774,10 +774,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListPrototypeVersionsQueryResult = NonNullable<Awaited<ReturnType<typeof listPrototypeVersions>>>
-export type ListPrototypeVersionsQueryError = ErrorType<Unauthorized | NotFound>
+export type ListPrototypeVersionsQueryError = ErrorType<void | Unauthorized | NotFound>
 
 
-export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypeVersions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPrototypeVersions>>,
@@ -787,7 +787,7 @@ export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listP
       >, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypeVersions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPrototypeVersions>>,
@@ -797,11 +797,11 @@ export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listP
       >, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypeVersions>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useListPrototypeVersions<TData = Awaited<ReturnType<typeof listPrototypeVersions>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPrototypeVersions>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -935,7 +935,7 @@ export const getGetPrototypeVersionQueryKey = (prototypeId: string,
     }
 
 
-export const getGetPrototypeVersionQueryOptions = <TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<Unauthorized | NotFound>>(prototypeId: string,
+export const getGetPrototypeVersionQueryOptions = <TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<void | Unauthorized | NotFound>>(prototypeId: string,
     number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersion>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
 ) => {
 
@@ -955,10 +955,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetPrototypeVersionQueryResult = NonNullable<Awaited<ReturnType<typeof getPrototypeVersion>>>
-export type GetPrototypeVersionQueryError = ErrorType<Unauthorized | NotFound>
+export type GetPrototypeVersionQueryError = ErrorType<void | Unauthorized | NotFound>
 
 
-export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     number: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersion>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -969,7 +969,7 @@ export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getProt
       >, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersion>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -980,12 +980,12 @@ export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getProt
       >, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersion>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<Unauthorized | NotFound>>(
+export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getPrototypeVersion>>, TError = ErrorType<void | Unauthorized | NotFound>>(
  prototypeId: string,
     number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototypeVersion>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
  , queryClient?: QueryClient

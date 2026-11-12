@@ -32,7 +32,7 @@ function contentKey(prototypeId: string, hash: string): string {
 
 /**
  * Keeps `content` for the owner's prototype under `hash`, which must be its SHA-256. Saving the
- * same content again does nothing new.
+ * same content again writes nothing.
  */
 export async function saveFileContent(
   db: Db,
@@ -46,6 +46,8 @@ export async function saveFileContent(
   if (!(await ownsPrototype(db, ownerId, prototypeId))) return { kind: "notFound" };
   const actual = await hashContent(content);
   if (actual !== hash) return { kind: "hashMismatch", actual };
+  // Each R2 write is billed, and a client may send everything again on every push.
+  if ((await contentSizes(db, prototypeId, [hash])).has(hash)) return { kind: "saved" };
   // R2 first: a row in D1 always means the content is there.
   await bucket.put(contentKey(prototypeId, hash), content);
   await db

@@ -48,6 +48,32 @@ describe("versionFilesProblem", () => {
     ).toBe("index.html is listed twice");
   });
 
+  test("a file that is also a directory can't", () => {
+    expect(
+      versionFilesProblem([
+        { path: "index.html", hash },
+        { path: "lib", hash },
+        { path: "lib/game.js", hash },
+      ]),
+    ).toBe("lib is a file and a directory of lib/game.js");
+  });
+
+  test("paths that differ only in case can't, as files or as directories", () => {
+    expect(
+      versionFilesProblem([
+        { path: "index.html", hash },
+        { path: "Index.html", hash },
+      ]),
+    ).toBe("index.html and Index.html differ only in case");
+    expect(
+      versionFilesProblem([
+        { path: "index.html", hash },
+        { path: "Lib", hash },
+        { path: "lib/game.js", hash },
+      ]),
+    ).toBe("Lib is a file and a directory of lib/game.js");
+  });
+
   test("more than 1000 files can't", () => {
     const files = Array.from({ length: 1001 }, (_, i) => ({ path: `f${i}`, hash }));
     expect(versionFilesProblem([{ path: "index.html", hash }, ...files])).toBe(
