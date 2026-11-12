@@ -8,7 +8,9 @@ pnpm gesso list                          # 自分のプロトタイプの ID と
 pnpm gesso versions <ID>                 # プロトタイプの版（新しい順、元の commit つき）
 pnpm gesso notes <ID>                    # メモのある版のメモ（新しい順）
 pnpm gesso notes <ID> --version 3        # 版 3 のメモ
+pnpm gesso new <ID> <dir> --template 2d  # 版のないプロトタイプを 2D（Canvas）か 3D（three.js）のテンプレートから始める
 pnpm gesso pull <ID> <dir>               # いちばん新しい版を <dir> の git に取り込む
+pnpm gesso serve <dir>                   # <dir> を http://localhost:4173/ で配る（手元で遊んで確かめる）
 pnpm gesso pull <ID> <dir> --version 3   # 版 3 を取ってくる
 pnpm gesso push <dir>                    # <dir> の最新の commit を次の版として送る
 pnpm gesso logout                        # gesso のセッションを終え、サインインした情報を消す
@@ -35,6 +37,16 @@ pnpm gesso logout                        # gesso のセッションを終え、�
 - リポジトリが取り込んだ版より新しい版があると、`push` は送らない（そのまま送ると、新しい版の変更が抜ける）。`pull` で取り込んでから送るか、`--force` で送る。
 - まだ版のないプロトタイプは、`pull` で空のリポジトリを用意し、`index.html` を置いて commit してから `push` すると版 1 ができる。
 - どのプロトタイプの、どの版と同期したかは `.git/gesso.json` に置く（git の差分には出ない。worktree もこれを共有する）。
+
+## テンプレート
+
+`new` は、版のないプロトタイプのフォルダーを `pull` と同じく用意し、テンプレートを置いて「gesso テンプレート 2d」として commit する。そのまま `push` すると版 1 になる。テンプレートは `templates/`（2D は Canvas だけ、3D は three.js を import map で読む）で、どちらにも同じ土台（`src/gesso/runtime.js`）がある。
+
+- `controls.json` に操作（キーとその名前）を宣言する。
+- 1 秒に 60 回の決まった間隔で進むループと、シードを決められる乱数。
+- ページの `window.gesso` から、状態を読む・操作を押す・止める・コマ送りする・シードを変えてやり直す。
+
+決まりとデバッグのしかたは、テンプレートの `CLAUDE.md` にあり、Claude Code はそのフォルダーで読む。
 
 ## メモ
 

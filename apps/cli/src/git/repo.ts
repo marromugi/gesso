@@ -67,6 +67,8 @@ export type Repo = {
   ): Promise<string>;
   /** Brings `commit` into the current branch: fast-forward when it can, a merge when not. */
   mergeIn(commit: string, message: string): Promise<MergeResult>;
+  /** Commits `paths` as they are in the working tree, as gesso (no hooks, no signing). */
+  commitAsGesso(paths: readonly string[], message: string): Promise<void>;
   /** The repository's `.git` folder (shared by its worktrees), which holds what git doesn't track. */
   gitDir(): Promise<string>;
 };
@@ -187,6 +189,15 @@ function repoAt(dir: string): Repo {
       } finally {
         await rm(env.GIT_INDEX_FILE, { force: true });
       }
+    },
+    async commitAsGesso(paths, message) {
+      await run(["add", "--", ...paths]);
+      await run(
+        ["commit", "--quiet", "--no-verify", "--no-gpg-sign", "-m", message, "--", ...paths],
+        {
+          env: gessoIdentity,
+        },
+      );
     },
     async mergeIn(commit, message) {
       const current = await head();
