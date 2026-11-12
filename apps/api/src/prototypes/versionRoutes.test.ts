@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { app } from "../app.ts";
+import { servePlay } from "../play/servePlay.ts";
 import {
   type LocalPlatform,
   addPrototype,
@@ -151,4 +152,27 @@ test("someone else's prototype is not found, even for content they saved", async
   expect((await request("/prototypes/theirs/versions")).status).toBe(404);
   expect((await upload("theirs", "mine")).response.status).toBe(404);
   expect((await postVersion("theirs", [{ path: "index.html", hash }])).status).toBe(404);
+});
+
+test("a play URL opens the version on the play Worker, only for its owner", async () => {
+  const page = await upload("mine", "<h1>play</h1>");
+  const created = await postVersion("mine", [{ path: "index.html", hash: page.hash }]);
+  const { number }: { number: number } = await created.json();
+
+  const response = await request(`/prototypes/mine/versions/${number}/play`, { method: "POST" });
+  expect(response.status).toBe(201);
+  const { url }: { url: string } = await response.json();
+  expect(url.startsWith(`${platform.env.PLAY_ORIGIN}/`)).toBe(true);
+  expect(await (await servePlay(new Request(url), platform.env)).text()).toBe("<h1>play</h1>");
+
+  const missing = await request("/prototypes/mine/versions/999/play", { method: "POST" });
+  expect(missing.status).toBe(404);
+  const theirs = await request("/prototypes/theirs/versions/1/play", { method: "POST" });
+  expect(theirs.status).toBe(404);
+});
+
+test("a prototype is read by its owner alone", async () => {
+  const mine = await request("/prototypes/mine");
+  expect(await mine.json()).toMatchObject({ id: "mine", name: "mine" });
+  expect((await request("/prototypes/theirs")).status).toBe(404);
 });

@@ -284,6 +284,22 @@
         "required": [
           "files"
         ]
+      },
+      "PlayUrl": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The version's index.html on the play Worker."
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt"
+        ]
       }
     },
     "parameters": {}
@@ -381,6 +397,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}": {
+      "get": {
+        "operationId": "getPrototype",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The prototype.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prototype"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
                 }
               }
             }
@@ -676,6 +739,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PrototypeVersionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}/versions/{number}/play": {
+      "post": {
+        "operationId": "createPrototypePlayUrl",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": true,
+            "name": "number",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A URL that plays the version until `expiresAt`, for whoever opens it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayUrl"
                 }
               }
             }

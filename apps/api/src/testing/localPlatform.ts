@@ -12,6 +12,7 @@ const testVars = {
   GITHUB_CLIENT_ID: "test",
   GITHUB_CLIENT_SECRET: "test",
   ALLOWED_GITHUB_USER_IDS: "1",
+  PLAY_ORIGIN: "http://localhost:8788",
 } satisfies Partial<Env>;
 
 /** The GitHub ID `addUser` gives a user who is allowed to sign in. */

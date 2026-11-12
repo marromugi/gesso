@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Serves prototype versions to play (src/play). Its own workers.dev origin keeps prototype code
+  // away from gesso-web's session cookie. It shares the API's D1 and R2; the API's migrations
+  // define the tables it reads.
+  "name": "gesso-play",
+  "main": "src/play/index.ts",
+  "compatibility_date": "2026-11-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "send_metrics": false,
+  "workers_dev": true,
+  "preview_urls": false,
+  "dev": {
+    "port": 8788,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gesso",
+      "database_id": "abd44e69-70a3-4246-9cb5-13bfd80302a2",
+    },
+  ],
+  "r2_buckets": [{ "binding": "PROTOTYPE_FILES", "bucket_name": "gesso-prototype-files" }],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+}

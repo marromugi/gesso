@@ -43,6 +43,18 @@ export const CreatePrototypeResponse = v.object({
 })
 
 
+export const GetPrototypeParams = v.object({
+  prototypeId: v.string()
+})
+
+export const GetPrototypeResponse = v.object({
+  id: v.string(),
+  name: v.string(),
+  createdAt: v.string(),
+  updatedAt: v.string()
+})
+
+
 export const PutPrototypeFileContentParams = v.object({
   prototypeId: v.string(),
   hash: v.pipe(v.string(), v.regex(new RegExp('^[0-9a-f]{64}$')), v.description('SHA-256 as lowercase hex.'))
@@ -105,3 +117,14 @@ export const GetPrototypeVersionResponse = v.intersect([v.object({
   size: v.pipe(v.number(), v.integer())
 }))
 })])
+
+
+export const CreatePrototypePlayUrlParams = v.object({
+  prototypeId: v.string(),
+  number: v.pipe(v.number(), v.integer(), v.minValue(1))
+})
+
+export const CreatePrototypePlayUrlResponse = v.object({
+  url: v.pipe(v.string(), v.description('The version\'s index.html on the play Worker.')),
+  expiresAt: v.string()
+})

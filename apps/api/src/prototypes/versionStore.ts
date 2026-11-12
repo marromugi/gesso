@@ -26,7 +26,7 @@ export type CreateVersionResult =
   | { kind: "missingContent"; hashes: string[] };
 
 /** Where R2 keeps a prototype's file content. */
-function contentKey(prototypeId: string, hash: string): string {
+export function contentKey(prototypeId: string, hash: string): string {
   return `prototypes/${prototypeId}/${hash}`;
 }
 

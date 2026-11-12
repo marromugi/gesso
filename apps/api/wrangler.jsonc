@@ -38,6 +38,9 @@
     // GitHub's numeric user IDs allowed to sign in, comma-separated (101984097 is marromugi).
     // Anyone else is refused before a user is made.
     "ALLOWED_GITHUB_USER_IDS": "101984097",
+    // Where the play Worker (wrangler.play.jsonc) serves versions; play URLs point here. Local dev
+    // overrides it in .dev.vars.
+    "PLAY_ORIGIN": "https://gesso-play.marrromugi-dev.workers.dev",
   },
   // Set with `wrangler secret put` for production and in .dev.vars locally.
   "secrets": {

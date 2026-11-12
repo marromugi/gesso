@@ -23,6 +23,7 @@ import type {
   Me,
   NewPrototype,
   NewPrototypeVersion,
+  PlayUrl,
   Prototype,
   PrototypeList,
   PrototypeVersionDetail,
@@ -38,6 +39,8 @@ export const getListPrototypesResponseMock = (overrideResponse: Partial<Extract<
 
 export const getCreatePrototypeResponseMock = (overrideResponse: Partial<Extract<Prototype, object>> = {}): Prototype => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), updatedAt: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
 
+export const getGetPrototypeResponseMock = (overrideResponse: Partial<Extract<Prototype, object>> = {}): Prototype => ({id: faker.string.alpha({length: {min: 10, max: 20}}), name: faker.string.alpha({length: {min: 10, max: 20}}), createdAt: faker.string.alpha({length: {min: 10, max: 20}}), updatedAt: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
+
 export const getGetPrototypeFileContentResponseMock = (): Blob => (new Blob([new Uint8Array(faker.number.int({ min: 1, max: 64 }))]))
 
 export const getListPrototypeVersionsResponseMock = (overrideResponse: Partial<Extract<PrototypeVersionList, object>> = {}): PrototypeVersionList => ({versions: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}})})), ...overrideResponse})
@@ -45,6 +48,8 @@ export const getListPrototypeVersionsResponseMock = (overrideResponse: Partial<E
 export const getCreatePrototypeVersionResponseMock = (): PrototypeVersionDetail => ({...{number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}})},...{files: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({path: faker.string.alpha({length: {min: 10, max: 20}}), hash: faker.helpers.fromRegExp("^[0-9a-f]{64}$"), size: faker.number.int()}))},})
 
 export const getGetPrototypeVersionResponseMock = (): PrototypeVersionDetail => ({...{number: faker.number.int(), createdAt: faker.string.alpha({length: {min: 10, max: 20}})},...{files: Array.from({ length: faker.number.int({min: 1, max: 10}) }, (_, i) => i + 1).map(() => ({path: faker.string.alpha({length: {min: 10, max: 20}}), hash: faker.helpers.fromRegExp("^[0-9a-f]{64}$"), size: faker.number.int()}))},})
+
+export const getCreatePrototypePlayUrlResponseMock = (overrideResponse: Partial<Extract<PlayUrl, object>> = {}): PlayUrl => ({url: faker.string.alpha({length: {min: 10, max: 20}}), expiresAt: faker.string.alpha({length: {min: 10, max: 20}}), ...overrideResponse})
 
 
 export const getGetHealthMockHandler = (overrideResponse?: Health | ((info: Parameters<HttpResponseResolver>[0]) => Promise<Health> | Health), options?: RequestHandlerOptions) => {
@@ -91,6 +96,18 @@ export const getCreatePrototypeMockHandler = (overrideResponse?: Prototype | ((i
     ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
     : getCreatePrototypeResponseMock(),
       { status: 201
+      })
+  }, options)
+}
+
+export const getGetPrototypeMockHandler = (overrideResponse?: Prototype | ((info: Parameters<HttpResponseResolver<{ prototypeId: string }>>[0]) => Promise<Prototype> | Prototype), options?: RequestHandlerOptions) => {
+  return http.get<{ prototypeId: string }>('*/prototypes/:prototypeId', async (info: Parameters<HttpResponseResolver<{ prototypeId: string }>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getGetPrototypeResponseMock(),
+      { status: 200
       })
   }, options)
 }
@@ -153,14 +170,28 @@ export const getGetPrototypeVersionMockHandler = (overrideResponse?: PrototypeVe
       })
   }, options)
 }
+
+export const getCreatePrototypePlayUrlMockHandler = (overrideResponse?: PlayUrl | ((info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }>>[0]) => Promise<PlayUrl> | PlayUrl), options?: RequestHandlerOptions) => {
+  return http.post<{ prototypeId: string; number: string }>('*/prototypes/:prototypeId/versions/:number/play', async (info: Parameters<HttpResponseResolver<{ prototypeId: string; number: string }>>[0]) => {
+
+
+    return HttpResponse.json(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getCreatePrototypePlayUrlResponseMock(),
+      { status: 201
+      })
+  }, options)
+}
 export const getGessoAPIMock = () => [
   getGetHealthMockHandler(),
   getGetMeMockHandler(),
   getListPrototypesMockHandler(),
   getCreatePrototypeMockHandler(),
+  getGetPrototypeMockHandler(),
   getPutPrototypeFileContentMockHandler(),
   getGetPrototypeFileContentMockHandler(),
   getListPrototypeVersionsMockHandler(),
   getCreatePrototypeVersionMockHandler(),
-  getGetPrototypeVersionMockHandler()
+  getGetPrototypeVersionMockHandler(),
+  getCreatePrototypePlayUrlMockHandler()
 ]

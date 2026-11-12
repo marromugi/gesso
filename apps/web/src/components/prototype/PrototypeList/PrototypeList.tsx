@@ -1,4 +1,5 @@
-import type { ApiFailure } from "@/lib/api";
+import { Link } from "@tanstack/react-router";
+import { apiFailureText } from "@/lib/ui/apiFailureText";
 import { NewPrototype } from "./NewPrototype";
 import { usePrototypeList } from "./usePrototypeList";
 
@@ -11,7 +12,7 @@ export function PrototypeList() {
     return <p>サインインすると、プロトタイプを作って一覧で見られます。</p>;
   }
   if (list.state === "failed") {
-    return <output>プロトタイプを読み込めません（{failureText(list.failure)}）</output>;
+    return <output>プロトタイプを読み込めません（{apiFailureText(list.failure)}）</output>;
   }
 
   return (
@@ -25,21 +26,18 @@ export function PrototypeList() {
       ) : (
         <ul className="flex flex-col gap-3">
           {list.prototypes.map((prototype) => (
-            <li
-              key={prototype.id}
-              className="rounded-container border border-edge bg-surface-raised font-semibold container-p-4"
-            >
-              {prototype.name}
+            <li key={prototype.id}>
+              <Link
+                to="/prototypes/$prototypeId"
+                params={{ prototypeId: prototype.id }}
+                className="block rounded-container border border-edge bg-surface-raised font-semibold container-p-4 hover:border-accent"
+              >
+                {prototype.name}
+              </Link>
             </li>
           ))}
         </ul>
       )}
     </section>
   );
-}
-
-function failureText(failure: ApiFailure): string {
-  if (failure.kind === "unreachable") return "API に接続できません";
-  if (failure.kind === "unreadable") return "API の応答を読み取れません";
-  return `API がエラーを返しました: ${failure.status}`;
 }
