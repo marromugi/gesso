@@ -48,6 +48,8 @@ export const pull = gessoCommand({
         ].join("\n"),
       );
       outro(`版 ${result.version} を取り込み中（ぶつかりあり）`);
+      // As `git pull` does: a script that looks only at the exit code still sees it isn't done.
+      process.exitCode = 1;
       return;
     }
     log.message(
