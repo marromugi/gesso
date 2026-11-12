@@ -33,10 +33,10 @@ export function ControlsGuide({ prototypeId, number }: { prototypeId: string; nu
             <dd className="flex flex-wrap gap-1">
               {line.keys.map((key) => (
                 <kbd
-                  key={key}
+                  key={key.code}
                   className="rounded border border-edge bg-surface-raised px-1.5 font-mono text-xs"
                 >
-                  {key}
+                  {key.label}
                 </kbd>
               ))}
             </dd>

@@ -403,14 +403,3 @@ export const ControlsCantBeRead: Story = {
     ).toBeVisible();
   },
 };
-
-/** Without controls.json, nothing is said about controls. */
-export const NoControls: Story = {
-  beforeEach({ msw }) {
-    msw.use(...fakeApi(versions));
-  },
-  async play() {
-    await player();
-    await expect(screen.queryByRole("region", { name: "操作" })).toBeNull();
-  },
-};

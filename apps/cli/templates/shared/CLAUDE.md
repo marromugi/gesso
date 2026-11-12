@@ -22,7 +22,7 @@ gesso の CLI は、gesso のリポジトリで `pnpm gesso` として動く。�
 ## 中身
 
 - `index.html`: 入口。
-- `controls.json`: 操作の宣言。キー（`KeyboardEvent.code`: `KeyA`、`ArrowLeft`、`Space`）と、人に見せる名前（gesso の遊ぶ画面で操作の説明に使う）。1 つのキーは 1 つの操作にだけ使う。
+- `controls.json`: 操作の宣言。キー（`KeyboardEvent.code`: `KeyA`、`ArrowLeft`、`Space`）と、人に見せる名前（gesso の遊ぶ画面で操作の説明に使う）。1 つのキーは 1 つの操作にだけ使う。gesso が読むのは 64 KiB まで。
 
   ```json
   { "format": 1, "actions": [{ "id": "jump", "label": "ジャンプ", "keys": ["Space"] }] }

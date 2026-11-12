@@ -1,1 +1,1 @@
-export { type ControlsGuide, type GuideLine, useControlsGuide } from "./useControlsGuide.ts";
+export { type GuideLine, type GuideState, useControlsGuide } from "./useControlsGuide.ts";

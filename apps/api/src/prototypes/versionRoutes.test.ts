@@ -219,7 +219,20 @@ test("a version's controls come from its controls.json, or say why they don't", 
   });
 
   expect((await request("/prototypes/mine/versions/999/controls")).status).toBe(404);
-  expect((await request("/prototypes/theirs/versions/1/controls")).status).toBe(404);
+  const otherCookie = await signIn(platform.env, "other");
+  const hash = await hashContent(await new Blob(["their controlled page"]).arrayBuffer());
+  await request(`/prototypes/theirs/files/${hash}`, {
+    method: "PUT",
+    headers: { "content-type": "application/octet-stream", cookie: otherCookie },
+    body: "their controlled page",
+  });
+  const created = await request("/prototypes/theirs/versions", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: otherCookie },
+    body: JSON.stringify({ files: [{ path: "index.html", hash }] }),
+  });
+  const { number }: { number: number } = await created.json();
+  expect((await request(`/prototypes/theirs/versions/${number}/controls`)).status).toBe(404);
 });
 
 test("a version with content not uploaded yet names it and makes nothing", async () => {
