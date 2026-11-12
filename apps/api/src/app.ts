@@ -45,13 +45,18 @@ export const app = new OpenAPIHono<{ Bindings: Env }>()
   .route("/prototypes", prototypeRoutes)
   .route("/prototypes", versionRoutes);
 
-app.post(`${authRoutePrefix}/sign-in/*`, async (c, next) => {
-  // Each sign-in that is started writes its OAuth state to D1, with or without a session.
-  const client = c.req.header("cf-connecting-ip") ?? "unknown";
-  const { success } = await c.env.SIGN_IN_RATE_LIMIT.limit({ key: client });
-  if (!success) return c.text("Too Many Requests", 429);
-  return next();
-});
+app.on(
+  "POST",
+  [`${authRoutePrefix}/sign-in/*`, `${authRoutePrefix}/device/code`],
+  async (c, next) => {
+    // Each sign-in that is started writes its OAuth state or device code to D1, with or without a
+    // session.
+    const client = c.req.header("cf-connecting-ip") ?? "unknown";
+    const { success } = await c.env.SIGN_IN_RATE_LIMIT.limit({ key: client });
+    if (!success) return c.text("Too Many Requests", 429);
+    return next();
+  },
+);
 
 app.on(["GET", "POST"], `${authRoutePrefix}/*`, (c) =>
   getAuth(c.env).handler(toPublicAuthRequest(c.req.raw, c.env.AUTH_BASE_URL)),

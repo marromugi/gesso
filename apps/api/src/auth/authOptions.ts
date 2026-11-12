@@ -1,6 +1,13 @@
 import type { BetterAuthOptions } from "better-auth";
+import { deviceAuthorization } from "better-auth/plugins/device-authorization";
 import { github } from "better-auth/social-providers";
 import { onlyAllowedGitHubUsers, parseGitHubUserIds } from "./allowedGitHubUsers.ts";
+
+/** The client ID the gesso CLI (apps/cli) signs in with; the only one device sign-in accepts. */
+export const cliClientId = "gesso-cli";
+
+/** The web app's page where a signed-in person approves a CLI's sign-in (apps/web `/device`). */
+const deviceApprovalPath = "/device";
 
 /** What the auth setup reads from the Worker's environment. */
 export type AuthEnv = Record<
@@ -20,6 +27,10 @@ export type AuthEnv = Record<
  * again on every session read, in `session.ts`); no passwords are stored. The provider's tokens
  * are dropped whenever an account row is written, because nothing here calls GitHub after
  * sign-in.
+ *
+ * The CLI signs in with the device flow (RFC 8628): it gets a code, the person approves it on the
+ * web app's `/device` page while signed in, and the CLI receives a session token of its own,
+ * which it sends as `Authorization: Bearer` (read in `session.ts`).
  */
 export function authOptions(env: AuthEnv) {
   // Better Auth's own GitHub profile lookup, which the allowlist wraps.
@@ -49,6 +60,13 @@ export function authOptions(env: AuthEnv) {
       "/refresh-token",
     ],
     account: { updateAccountOnSignIn: false },
+    plugins: [
+      deviceAuthorization({
+        // Relative to the auth base URL's origin: the web app's page, not an API route.
+        verificationUri: deviceApprovalPath,
+        validateClient: (clientId) => clientId === cliClientId,
+      }),
+    ],
     databaseHooks: {
       account: {
         create: { before: async (account) => ({ data: withoutProviderTokens(account) }) },

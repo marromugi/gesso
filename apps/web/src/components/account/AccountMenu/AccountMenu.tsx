@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import type { ApiFailure } from "@/lib/api";
+import { apiFailureText } from "@/lib/ui/apiFailureText";
 import { type Account, useAccountMenu } from "./useAccountMenu";
 
 export function AccountMenu() {
@@ -13,7 +13,7 @@ export function AccountMenu() {
           サインアウト
         </Button>
         {signOut.failure ? (
-          <output>サインアウトできませんでした（{failureText(signOut.failure)}）</output>
+          <output>サインアウトできませんでした（{apiFailureText(signOut.failure)}）</output>
         ) : null}
       </div>
     );
@@ -26,7 +26,7 @@ export function AccountMenu() {
           GitHub でサインイン
         </Button>
         {signIn.failure ? (
-          <output>サインインを始められませんでした（{failureText(signIn.failure)}）</output>
+          <output>サインインを始められませんでした（{apiFailureText(signIn.failure)}）</output>
         ) : null}
       </div>
     );
@@ -37,11 +37,5 @@ export function AccountMenu() {
 
 function statusText(account: Extract<Account, { state: "checking" | "failed" }>): string {
   if (account.state === "checking") return "サインイン状態を確認しています…";
-  return `サインイン状態を確認できません（${failureText(account.failure)}）`;
-}
-
-function failureText(failure: ApiFailure): string {
-  if (failure.kind === "unreachable") return "API に接続できません";
-  if (failure.kind === "unreadable") return "API の応答を読み取れません";
-  return `API がエラーを返しました: ${failure.status}`;
+  return `サインイン状態を確認できません（${apiFailureText(account.failure)}）`;
 }

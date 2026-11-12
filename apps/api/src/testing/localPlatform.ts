@@ -1,9 +1,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { getPlatformProxy } from "wrangler";
+import { sessionCookieHeader } from "../auth/sessionCookie.ts";
 
-/** Better Auth's session cookie, with the `__Secure-` prefix `useSecureCookies` gives it. */
-const sessionCookieName = "__Secure-better-auth.session_token";
+/** The API's root, which holds its wrangler config and migrations. */
+const apiRoot = resolve(import.meta.dirname, "../..");
 
 /** Settings the tests use instead of `.dev.vars`, which CI doesn't have. */
 const testVars = {
@@ -24,9 +25,12 @@ export type LocalPlatform = {
   dispose: () => Promise<void>;
 };
 
-/** Starts a local D1 and R2 that keep nothing on disk. */
+/** Starts a local D1 and R2 that keep nothing on disk. Works from any package's tests. */
 export async function startLocalPlatform(): Promise<LocalPlatform> {
-  const proxy = await getPlatformProxy<Env>({ persist: false });
+  const proxy = await getPlatformProxy<Env>({
+    configPath: resolve(apiRoot, "wrangler.jsonc"),
+    persist: false,
+  });
   const env = { ...proxy.env, ...testVars };
   await applyMigrations(env.DB);
   return { env, dispose: () => proxy.dispose() };
@@ -57,6 +61,11 @@ export async function addPrototype(env: Env, id: string, ownerId: string): Promi
 
 /** Makes a session for `userId` and gives the `Cookie` header that carries it. */
 export async function signIn(env: Env, userId: string): Promise<string> {
+  return sessionCookieHeader(await makeSession(env, userId), env.BETTER_AUTH_SECRET);
+}
+
+/** Makes a session for `userId` and gives its token, as the CLI holds it. */
+export async function makeSession(env: Env, userId: string): Promise<string> {
   const token = crypto.randomUUID();
   const at = new Date();
   const expiresAt = new Date(at.getTime() + 60 * 60 * 1000);
@@ -72,21 +81,11 @@ export async function signIn(env: Env, userId: string): Promise<string> {
       userId,
     )
     .run();
-  // Signed the way Better Auth signs it: the token, a dot, and its HMAC-SHA256 in base64.
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(env.BETTER_AUTH_SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(token));
-  const signed = `${token}.${Buffer.from(signature).toString("base64")}`;
-  return `${sessionCookieName}=${encodeURIComponent(signed)}`;
+  return token;
 }
 
 async function applyMigrations(d1: D1Database): Promise<void> {
-  const dir = resolve(import.meta.dirname, "../../migrations");
+  const dir = resolve(apiRoot, "migrations");
   const files = readdirSync(dir)
     .filter((name) => name.endsWith(".sql"))
     .toSorted();

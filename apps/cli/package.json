@@ -1,0 +1,17 @@
+{
+  "name": "@gesso/cli",
+  "private": true,
+  "bin": {
+    "gesso": "./src/main.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

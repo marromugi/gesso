@@ -8,6 +8,7 @@ import {
   parseGitHubUserIds,
 } from "./allowedGitHubUsers.ts";
 import { getAuth } from "./auth.ts";
+import { withBearerSession } from "./sessionCookie.ts";
 
 /** The signed-in user as the routes see them. */
 export type SessionUser = { id: string; name: string; email: string; image: string | null };
@@ -16,15 +17,16 @@ export type SessionUser = { id: string; name: string; email: string; image: stri
 export type SignedInVariables = { user: SessionUser };
 
 /**
- * Reads the session the request carries, or `null` without a valid one or when the user's GitHub
- * account is no longer in `ALLOWED_GITHUB_USER_IDS`. Better Auth's `Set-Cookie` headers
- * (extending the session, clearing a bad cookie) are added to the response.
+ * Reads the session the request carries, in the session cookie (the web app) or as
+ * `Authorization: Bearer <session token>` (the CLI), or `null` without a valid one or when the
+ * user's GitHub account is no longer in `ALLOWED_GITHUB_USER_IDS`. Better Auth's `Set-Cookie`
+ * headers (extending the session, clearing a bad cookie) are added to the response.
  */
 export async function readSessionUser<E extends { Bindings: Env }>(
   c: Context<E>,
 ): Promise<SessionUser | null> {
   const { headers, response: session } = await getAuth(c.env).api.getSession({
-    headers: c.req.raw.headers,
+    headers: await withBearerSession(c.req.raw.headers, c.env.BETTER_AUTH_SECRET),
     returnHeaders: true,
   });
   for (const cookie of headers.getSetCookie()) c.header("set-cookie", cookie, { append: true });
