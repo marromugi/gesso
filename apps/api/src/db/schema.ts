@@ -59,6 +59,10 @@ export const prototypeVersion = sqliteTable(
       .references(() => prototype.id, { onDelete: "cascade" }),
     /** 1 for a prototype's first version, then one more for each version after. */
     number: integer("number").notNull(),
+    /** The git commit the version was made from, when the client sent one. */
+    sourceCommit: text("sourceCommit"),
+    /** The branch that commit was on, when it was on one. */
+    sourceBranch: text("sourceBranch"),
     createdAt: text("createdAt").notNull(),
   },
   (table) => [

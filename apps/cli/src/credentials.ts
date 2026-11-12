@@ -1,10 +1,15 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import * as v from "valibot";
 import { CliError } from "./cliError.ts";
 
-/** The format of the credentials file; one this CLI doesn't know is refused, not read in part. */
-const credentialsFormat = 1;
+/** The saved file; one of a format this CLI doesn't know is refused, not read in part. */
+const SavedCredentials = v.object({
+  format: v.literal(1),
+  apiUrl: v.string(),
+  token: v.string(),
+});
 
 /** What `gesso login` keeps: which API it signed in to, and the session token for it. */
 export type Credentials = { apiUrl: string; token: string };
@@ -27,25 +32,16 @@ export async function loadCredentials(path: string): Promise<Credentials | null>
     if (isNotFound(cause)) return null;
     throw new CliError(`${path} を読めません。`, { cause });
   }
-  const saved: unknown = JSON.parse(text);
-  if (
-    typeof saved === "object" &&
-    saved !== null &&
-    "format" in saved &&
-    saved.format === credentialsFormat &&
-    "apiUrl" in saved &&
-    typeof saved.apiUrl === "string" &&
-    "token" in saved &&
-    typeof saved.token === "string"
-  ) {
-    return { apiUrl: saved.apiUrl, token: saved.token };
+  const parsed = v.safeParse(SavedCredentials, JSON.parse(text));
+  if (!parsed.success) {
+    throw new CliError(`${path} の形が違います。\`pnpm gesso login\` し直してください。`);
   }
-  throw new CliError(`${path} の形が違います。\`pnpm gesso login\` し直してください。`);
+  return { apiUrl: parsed.output.apiUrl, token: parsed.output.token };
 }
 
 export async function saveCredentials(path: string, credentials: Credentials): Promise<void> {
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-  const text = `${JSON.stringify({ format: credentialsFormat, ...credentials }, null, 2)}\n`;
+  const text = `${JSON.stringify({ format: 1, ...credentials }, null, 2)}\n`;
   await writeFile(path, text, { mode: 0o600 });
 }
 

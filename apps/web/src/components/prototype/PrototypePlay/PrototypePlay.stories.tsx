@@ -19,9 +19,9 @@ import { PrototypePlay } from "./PrototypePlay.tsx";
 const prototypeId = "p1";
 
 const versions = [
-  { number: 3, createdAt: "2026-11-12T03:00:00.000Z" },
-  { number: 2, createdAt: "2026-11-11T03:00:00.000Z" },
-  { number: 1, createdAt: "2026-11-10T03:00:00.000Z" },
+  { number: 3, createdAt: "2026-11-12T03:00:00.000Z", source: null },
+  { number: 2, createdAt: "2026-11-11T03:00:00.000Z", source: null },
+  { number: 1, createdAt: "2026-11-10T03:00:00.000Z", source: null },
 ];
 
 /** Stands in for the API: a prototype with `list` as its versions, each played at `#v<number>`. */

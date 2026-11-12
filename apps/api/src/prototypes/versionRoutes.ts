@@ -28,8 +28,34 @@ const badRequestResponse = {
   description: "The path or body is not valid; the body lists the problems.",
 } as const;
 
+/** A git commit's name: SHA-1 (40) or, in a SHA-256 repository, 64 hex characters. */
+const commitPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+
+/** The longest branch name taken, in characters. */
+const maxBranchLength = 255;
+
+const VersionSource = z
+  .object({
+    commit: z
+      .string()
+      .regex(commitPattern)
+      .openapi({ description: "The git commit, as SHA-1 or SHA-256 hex." }),
+    branch: z
+      .string()
+      .min(1)
+      .max(maxBranchLength)
+      .nullable()
+      .openapi({ description: "The branch the commit was on; `null` when detached." }),
+  })
+  .openapi("VersionSource");
+
 const PrototypeVersion = z
-  .object({ number: z.number().int(), createdAt: z.string() })
+  .object({
+    number: z.number().int(),
+    createdAt: z.string(),
+    // A union, not `.nullable()`, which would make the shared VersionSource itself nullable.
+    source: z.union([VersionSource, z.null()]),
+  })
   .openapi("PrototypeVersion");
 
 const PrototypeVersionList = z
@@ -57,6 +83,7 @@ const NewPrototypeVersion = z
       const problem = versionFilesProblem(files);
       if (problem !== null) context.addIssue({ code: "custom", message: problem });
     }),
+    source: VersionSource.optional(),
   })
   .openapi("NewPrototypeVersion");
 
@@ -253,6 +280,7 @@ export const versionRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedI
       c.var.user.id,
       prototypeId,
       c.req.valid("json").files,
+      c.req.valid("json").source ?? null,
       new Date(),
     );
     if (result.kind === "notFound") return c.json(notFound, 404);

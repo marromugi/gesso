@@ -184,11 +184,45 @@
           },
           "createdAt": {
             "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VersionSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "number",
-          "createdAt"
+          "createdAt",
+          "source"
+        ]
+      },
+      "VersionSource": {
+        "type": "object",
+        "properties": {
+          "commit": {
+            "type": "string",
+            "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+            "description": "The git commit, as SHA-1 or SHA-256 hex."
+          },
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "The branch the commit was on; `null` when detached."
+          }
+        },
+        "required": [
+          "commit",
+          "branch"
         ]
       },
       "PrototypeVersionDetail": {
@@ -279,6 +313,9 @@
                 "hash"
               ]
             }
+          },
+          "source": {
+            "$ref": "#/components/schemas/VersionSource"
           }
         },
         "required": [

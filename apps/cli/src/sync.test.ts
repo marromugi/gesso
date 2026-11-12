@@ -1,12 +1,27 @@
-import { mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, beforeEach, expect, test } from "vitest";
-import type { ApiClient, VersionFile } from "./api.ts";
+import { dirname, join } from "node:path";
+import { simpleGit } from "simple-git";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
+import type { ApiClient, PrototypeVersion, VersionFile, VersionSource } from "./api/client.ts";
 import { pull, push } from "./sync.ts";
-import { hashContent, writeLocalFile } from "./workspace.ts";
+import { hashContent } from "./workspace.ts";
 
 const prototypeId = "p1";
+
+let gitConfig: string;
+
+beforeAll(async () => {
+  // The person's own git settings (identity, signing) must not reach the repositories here.
+  gitConfig = await mkdtemp(join(tmpdir(), "gesso-gitconfig-"));
+  await writeFile(join(gitConfig, "config"), "");
+  process.env.GIT_CONFIG_GLOBAL = join(gitConfig, "config");
+  process.env.GIT_CONFIG_NOSYSTEM = "1";
+});
+
+afterAll(async () => {
+  await rm(gitConfig, { recursive: true, force: true });
+});
 
 /**
  * Stands in for the API: one prototype, its versions, and the content uploaded for it.
@@ -14,37 +29,45 @@ const prototypeId = "p1";
  */
 function fakeApi() {
   const contents = new Map<string, Uint8Array>();
-  const versions: VersionFile[][] = [];
+  const versions: { files: VersionFile[]; source: VersionSource | null }[] = [];
   const state = { uploads: 0 };
   const client: ApiClient = {
     me: async () => ({ name: "owner" }),
     endSession: async () => {},
     listPrototypes: async () => [{ id: prototypeId, name: "jump" }],
     listVersions: async () =>
-      versions.map((_, index) => ({ number: index + 1, createdAt: "" })).toReversed(),
-    versionFiles: async (_, number) => versions[number - 1] ?? [],
+      versions
+        .map((version, index): PrototypeVersion => ({
+          number: index + 1,
+          createdAt: "2026-11-12T00:00:00.000Z",
+          source: version.source,
+        }))
+        .toReversed(),
+    versionFiles: async (_, number) => versions[number - 1]?.files ?? [],
     readContent: async (_, hash) => contents.get(hash) ?? new Uint8Array(),
     saveContent: async (_, hash, content) => {
       state.uploads += 1;
       contents.set(hash, content);
     },
-    createVersion: async (_, files) => {
+    createVersion: async (_, files, source) => {
       const missing = files.map((file) => file.hash).filter((hash) => !contents.has(hash));
       if (missing.length > 0) return { kind: "missingContent", hashes: [...new Set(missing)] };
-      versions.push(files);
+      versions.push({ files, source });
       return { kind: "created", number: versions.length };
     },
   };
-  /** Makes a version straight in the fake, as another machine's push would. */
+  /** Makes a version straight in the fake, as a push from elsewhere would. */
   function addVersion(files: Record<string, string>) {
     const entries = Object.entries(files).map(([path, text]) => {
       const content = new TextEncoder().encode(text);
       contents.set(hashContent(content), content);
       return { path, hash: hashContent(content) };
     });
-    versions.push(entries);
+    versions.push({ files: entries, source: null });
   }
-  return { client, state, addVersion };
+  const paths = async (number: number) =>
+    (await client.versionFiles(prototypeId, number)).map((file) => file.path);
+  return { client, state, versions, addVersion, paths };
 }
 
 let dir: string;
@@ -61,33 +84,155 @@ async function read(path: string): Promise<string> {
   return readFile(join(dir, path), "utf8");
 }
 
-async function write(path: string, text: string): Promise<void> {
-  await writeLocalFile(dir, path, new TextEncoder().encode(text));
+async function write(files: Record<string, string>): Promise<void> {
+  for (const [path, text] of Object.entries(files)) {
+    await mkdir(dirname(join(dir, path)), { recursive: true });
+    await writeFile(join(dir, path), text);
+  }
 }
 
-test("pull puts the newest version in an empty folder, and push sends the change back", async () => {
+/** Writes `files` and commits everything, as the person (or Claude Code) does between pushes. */
+async function commit(files: Record<string, string>, message = "edit"): Promise<string> {
+  await write(files);
+  const git = simpleGit({ baseDir: dir, config: ["user.name=t", "user.email=t@example.com"] });
+  await git.add(["--all"]);
+  await git.commit(message);
+  return (await git.revparse(["HEAD"])).trim();
+}
+
+async function log(): Promise<string[]> {
+  return (await simpleGit({ baseDir: dir }).log()).all.map((entry) => entry.message);
+}
+
+test("pull makes a repository of the newest version, and push sends a later commit back", async () => {
   const api = fakeApi();
   api.addVersion({ "index.html": "<h1>1</h1>", "src/game.js": "jump()" });
 
-  expect(await pull(api.client, prototypeId, dir)).toEqual({
+  expect(await pull(api.client, prototypeId, dir)).toMatchObject({
     version: 1,
-    written: 2,
-    deleted: 0,
+    initialized: true,
+    committed: true,
   });
   expect(await read("src/game.js")).toBe("jump()");
+  expect(await log()).toEqual(["gesso 版 1"]);
 
-  await write("src/game.js", "jump(2)");
-  await write("src/enemy.js", "walk()");
+  const head = await commit({ "src/game.js": "jump(2)", "src/enemy.js": "walk()" });
   const pushed = await push(api.client, dir);
 
   // Only the two new contents are uploaded; index.html is already there.
-  expect(pushed).toEqual({ kind: "created", version: 2, uploaded: 2, files: 3 });
-  expect(api.state.uploads).toBe(2);
-  expect((await api.client.versionFiles(prototypeId, 2)).map((file) => file.path)).toEqual([
-    "index.html",
-    "src/enemy.js",
-    "src/game.js",
-  ]);
+  expect(pushed).toMatchObject({ kind: "created", version: 2, uploaded: 2, files: 3 });
+  expect(api.versions[1]?.source?.commit).toBe(head);
+  expect(await api.paths(2)).toEqual(["index.html", "src/enemy.js", "src/game.js"]);
+});
+
+test("push sends the commit, not what isn't committed yet, and says so", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+  await pull(api.client, prototypeId, dir);
+  await commit({ "game.js": "committed()" });
+  await write({ "game.js": "not committed()", "draft.js": "draft()" });
+
+  const pushed = await push(api.client, dir);
+
+  expect(pushed).toMatchObject({ kind: "created", uncommitted: true });
+  expect(await api.paths(2)).toEqual(["game.js", "index.html"]);
+  const game = (await api.client.versionFiles(prototypeId, 2)).find((f) => f.path === "game.js");
+  expect(game?.hash).toBe(hashContent(new TextEncoder().encode("committed()")));
+});
+
+test("the same commit, or the same files, make no new version", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+  await pull(api.client, prototypeId, dir);
+  // Right after a pull, the commit is new but the files are the version's.
+  expect(await push(api.client, dir)).toMatchObject({ kind: "unchanged", version: 1 });
+
+  await commit({ "game.js": "go()" });
+  await push(api.client, dir);
+  expect(await push(api.client, dir)).toMatchObject({ kind: "unchanged", version: 2 });
+  expect(api.versions).toHaveLength(2);
+});
+
+test("committed dot files and node_modules stay out of the version", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+  await pull(api.client, prototypeId, dir);
+  await commit({ ".gitignore": "dist\n", "node_modules/lib/x.js": "x", "game.js": "go()" });
+
+  const pushed = await push(api.client, dir);
+
+  expect(pushed).toMatchObject({ leftOut: [".gitignore", "node_modules/lib/x.js"] });
+  expect(await api.paths(2)).toEqual(["game.js", "index.html"]);
+});
+
+test("a prototype with no version gets a repository to push its first version from", async () => {
+  const api = fakeApi();
+
+  expect(await pull(api.client, prototypeId, dir)).toMatchObject({ version: 0, committed: false });
+  await expect(push(api.client, dir)).rejects.toThrow(/commit がありません/);
+  await commit({ "index.html": "<h1>first</h1>" });
+
+  expect(await push(api.client, dir)).toMatchObject({ kind: "created", version: 1 });
+});
+
+test("push from a repository behind the newest version is refused, unless forced", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+  await pull(api.client, prototypeId, dir);
+  api.addVersion({ "index.html": "<h1>2 from elsewhere</h1>" });
+  await commit({ "index.html": "<h1>mine</h1>" });
+
+  await expect(push(api.client, dir)).rejects.toThrow(/版 2/);
+  expect(api.versions).toHaveLength(2);
+
+  expect(await push(api.client, dir, { force: true })).toMatchObject({ version: 3 });
+});
+
+test("pulling a later version replaces the old one's files and commits them", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>", level: "one", "old.js": "old()" });
+  api.addVersion({ "index.html": "<h1>2</h1>", "level/one.json": "{}" });
+  await pull(api.client, prototypeId, dir, { number: 1 });
+
+  expect(await pull(api.client, prototypeId, dir)).toMatchObject({ version: 2, deleted: 2 });
+
+  expect(await read("level/one.json")).toBe("{}");
+  expect((await readdir(dir)).toSorted()).toEqual([".git", "index.html", "level"]);
+  expect(await log()).toEqual(["gesso 版 2", "gesso 版 1"]);
+});
+
+test("pull leaves work alone: changes not committed, another prototype, other files", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+
+  await write({ "notes.txt": "mine" });
+  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/git のリポジトリではなく/);
+
+  await rm(join(dir, "notes.txt"));
+  await pull(api.client, prototypeId, dir);
+  await write({ "index.html": "<h1>edited</h1>" });
+  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/commit していない変更/);
+  expect(await read("index.html")).toBe("<h1>edited</h1>");
+
+  await expect(pull(api.client, "p2", dir)).rejects.toThrow(/別のプロトタイプ/);
+});
+
+test("pull never writes through a link to outside the folder", async () => {
+  const outside = await mkdtemp(join(tmpdir(), "gesso-outside-"));
+  try {
+    const api = fakeApi();
+    api.addVersion({ "index.html": "<h1>1</h1>" });
+    api.addVersion({ "index.html": "<h1>1</h1>", "assets/a.js": "a()" });
+    await pull(api.client, prototypeId, dir, { number: 1 });
+    await symlink(outside, join(dir, "assets"));
+    await commit({}, "link assets");
+
+    await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/リンク/);
+
+    expect(await readdir(outside)).toEqual([]);
+  } finally {
+    await rm(outside, { recursive: true, force: true });
+  }
 });
 
 test("pull makes a folder that isn't there yet", async () => {
@@ -100,161 +245,14 @@ test("pull makes a folder that isn't there yet", async () => {
   expect(await readFile(join(folder, "index.html"), "utf8")).toBe("<h1>1</h1>");
 });
 
-test("push with nothing changed makes no version", async () => {
+test("push needs a repository that was pulled, with index.html at the root", async () => {
   const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>" });
+  await expect(push(api.client, dir)).rejects.toThrow(/git のリポジトリではありません/);
+
+  await simpleGit({ baseDir: dir }).init();
+  await expect(push(api.client, dir)).rejects.toThrow(/結びついていません/);
+
   await pull(api.client, prototypeId, dir);
-
-  expect(await push(api.client, dir)).toEqual({ kind: "unchanged", version: 1 });
-  expect(await api.client.listVersions(prototypeId)).toHaveLength(1);
-});
-
-test("push leaves out dot files and node_modules", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>" });
-  await pull(api.client, prototypeId, dir);
-  await write(".env", "SECRET=1");
-  await write(".git/HEAD", "ref");
-  await write("node_modules/lib/index.js", "x");
-  await write("game.js", "go()");
-
-  await push(api.client, dir);
-
-  expect((await api.client.versionFiles(prototypeId, 2)).map((file) => file.path)).toEqual([
-    "game.js",
-    "index.html",
-  ]);
-});
-
-test("pulling another version replaces the old one's files and leaves files gesso never had", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>", "old.js": "old()" });
-  api.addVersion({ "index.html": "<h1>2</h1>", "new.js": "new()" });
-  await pull(api.client, prototypeId, dir, { number: 1 });
-  await write("notes.txt", "mine");
-
-  expect(await pull(api.client, prototypeId, dir)).toEqual({
-    version: 2,
-    written: 2,
-    deleted: 1,
-  });
-  expect((await readdir(dir)).toSorted()).toEqual([
-    ".gesso.json",
-    "index.html",
-    "new.js",
-    "notes.txt",
-  ]);
-});
-
-test("pull refuses to overwrite files changed since, unless forced", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>" });
-  api.addVersion({ "index.html": "<h1>2</h1>" });
-  await pull(api.client, prototypeId, dir, { number: 1 });
-  await write("index.html", "<h1>edited</h1>");
-
-  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/index\.html/);
-  expect(await read("index.html")).toBe("<h1>edited</h1>");
-
-  await pull(api.client, prototypeId, dir, { force: true });
-  expect(await read("index.html")).toBe("<h1>2</h1>");
-});
-
-test("pull refuses to overwrite a file gesso never had that the version also has", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>" });
-  api.addVersion({ "index.html": "<h1>1</h1>", "game.js": "theirs()" });
-  await pull(api.client, prototypeId, dir, { number: 1 });
-  await write("game.js", "mine()");
-
-  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/game\.js/);
-  expect(await read("game.js")).toBe("mine()");
-});
-
-test.each([
-  ["a folder with other files", async () => writeFile(join(dir, "a.txt"), "a")],
-  [
-    "another prototype's folder",
-    async () =>
-      writeFile(
-        join(dir, ".gesso.json"),
-        JSON.stringify({ format: 1, prototypeId: "other", version: 1, files: {} }),
-      ),
-  ],
-])("pull refuses %s", async (_, prepare) => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>" });
-  await prepare();
-
-  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow();
-  await expect(read("index.html")).rejects.toThrow();
-});
-
-test("a prototype with no version gets a folder to push its first version from", async () => {
-  const api = fakeApi();
-
-  expect(await pull(api.client, prototypeId, dir)).toEqual({ version: 0, written: 0, deleted: 0 });
-  await write("index.html", "<h1>first</h1>");
-
-  expect(await push(api.client, dir)).toMatchObject({ kind: "created", version: 1 });
-});
-
-test("push from a folder behind the newest version is refused, unless forced", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>" });
-  await pull(api.client, prototypeId, dir);
-  api.addVersion({ "index.html": "<h1>2 from elsewhere</h1>" });
-  await write("index.html", "<h1>mine</h1>");
-
-  await expect(push(api.client, dir)).rejects.toThrow(/版 2/);
-  expect(await api.client.listVersions(prototypeId)).toHaveLength(2);
-
-  expect(await push(api.client, dir, { force: true })).toMatchObject({ version: 3 });
-});
-
-test("pull never writes through a link to outside the folder", async () => {
-  const outside = await mkdtemp(join(tmpdir(), "gesso-outside-"));
-  try {
-    const api = fakeApi();
-    api.addVersion({ "index.html": "<h1>1</h1>" });
-    api.addVersion({ "index.html": "<h1>1</h1>", "assets/a.js": "a()", "data.json": "{}" });
-    await pull(api.client, prototypeId, dir, { number: 1 });
-    await writeFile(join(outside, "data.json"), "theirs");
-    await symlink(outside, join(dir, "assets"));
-    await symlink(join(outside, "data.json"), join(dir, "data.json"));
-
-    await expect(pull(api.client, prototypeId, dir, { force: true })).rejects.toThrow(/リンク/);
-
-    expect((await readdir(outside)).toSorted()).toEqual(["data.json"]);
-    expect(await readFile(join(outside, "data.json"), "utf8")).toBe("theirs");
-  } finally {
-    await rm(outside, { recursive: true, force: true });
-  }
-});
-
-test("a file that becomes a folder in the next version, and back", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>", level: "one" });
-  api.addVersion({ "index.html": "<h1>2</h1>", "level/one.json": "{}" });
-  api.addVersion({ "index.html": "<h1>3</h1>", level: "three" });
-  await pull(api.client, prototypeId, dir, { number: 1 });
-
-  await pull(api.client, prototypeId, dir, { number: 2 });
-  expect(await read("level/one.json")).toBe("{}");
-  await pull(api.client, prototypeId, dir, { number: 3 });
-  expect(await read("level")).toBe("three");
-});
-
-test("pull refuses when a file pulled before was deleted since", async () => {
-  const api = fakeApi();
-  api.addVersion({ "index.html": "<h1>1</h1>", "game.js": "go()" });
-  await pull(api.client, prototypeId, dir);
-  await rm(join(dir, "game.js"));
-
-  await expect(pull(api.client, prototypeId, dir)).rejects.toThrow(/game\.js/);
-});
-
-test("push needs a folder that was pulled", async () => {
-  await write("index.html", "<h1>1</h1>");
-  await expect(push(fakeApi().client, dir)).rejects.toThrow(/\.gesso\.json/);
+  await commit({ "src/index.html": "<h1>not at the root</h1>" });
+  await expect(push(api.client, dir)).rejects.toThrow(/index\.html/);
 });

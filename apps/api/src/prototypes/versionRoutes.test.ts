@@ -105,6 +105,26 @@ test("content that isn't what its hash says is refused", async () => {
   });
 });
 
+test("a version keeps the commit it was made from, and a malformed one is refused", async () => {
+  const page = await upload("mine", "<h1>from git</h1>");
+  const source = { commit: "b".repeat(40), branch: "jump-tuning" };
+  const send = (body: object) =>
+    request("/prototypes/mine/versions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ files: [{ path: "index.html", hash: page.hash }], ...body }),
+    });
+
+  const created = await send({ source });
+  expect(await created.json()).toMatchObject({ source });
+  const { versions }: { versions: { source: unknown }[] } = await (
+    await request("/prototypes/mine/versions")
+  ).json();
+  expect(versions[0]?.source).toEqual(source);
+
+  expect((await send({ source: { commit: "HEAD", branch: null } })).status).toBe(400);
+});
+
 test("a version with content not uploaded yet names it and makes nothing", async () => {
   const before = await versionNumbers("mine");
   const page = await upload("mine", "<h1>missing</h1>");

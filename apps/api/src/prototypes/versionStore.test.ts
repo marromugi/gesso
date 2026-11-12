@@ -56,6 +56,7 @@ test("versions are numbered from 1, newest first, and keep their files", async (
       { path: "index.html", hash: page },
       { path: "game.js", hash: first },
     ],
+    { commit: "a".repeat(40), branch: "main" },
     now,
   );
   // The page is reused as it is, without being uploaded again.
@@ -67,18 +68,24 @@ test("versions are numbered from 1, newest first, and keep their files", async (
       { path: "index.html", hash: page },
       { path: "game.js", hash: second },
     ],
+    null,
     now,
   );
 
   expect(v1).toMatchObject({ kind: "created", version: { number: 1 } });
   expect(v2).toMatchObject({ kind: "created", version: { number: 2 } });
   expect(await listVersions(db, owner, "numbered")).toEqual([
-    { number: 2, createdAt: now.toISOString() },
-    { number: 1, createdAt: now.toISOString() },
+    { number: 2, createdAt: now.toISOString(), source: null },
+    {
+      number: 1,
+      createdAt: now.toISOString(),
+      source: { commit: "a".repeat(40), branch: "main" },
+    },
   ]);
   expect(await getVersion(db, owner, "numbered", 1)).toEqual({
     number: 1,
     createdAt: now.toISOString(),
+    source: { commit: "a".repeat(40), branch: "main" },
     files: [
       { path: "game.js", hash: first, size: 7 },
       { path: "index.html", hash: page, size: 29 },
@@ -99,7 +106,7 @@ test(
       paths.map(async (path) => ({ path, hash: await save("large", path) })),
     );
 
-    const created = await createVersion(db, owner, "large", files, now);
+    const created = await createVersion(db, owner, "large", files, null, now);
 
     expect(created).toMatchObject({ kind: "created", version: { number: 1 } });
     const version = await getVersion(db, owner, "large", 1);
