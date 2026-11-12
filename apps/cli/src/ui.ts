@@ -51,6 +51,9 @@ export function progress(message: string): Progress {
   return { stop: (end) => log.success(end), error: (end) => log.error(end) };
 }
 
+/** The gesso repository this CLI runs from, where `pnpm gesso` works. */
+export const gessoRepository = resolve(import.meta.dirname, "..", "..", "..");
+
 /** The API, as the person who signed in with `gesso login`. */
 export async function signedInApi() {
   const credentials = await requireCredentials(credentialsPath());

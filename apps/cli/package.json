@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",
+    "@gesso/api": "workspace:*",
     "citty": "0.2.2",
     "valibot": "^1.5.0"
   },
   "devDependencies": {
-    "@gesso/api": "workspace:*",
     "@types/node": "^24.19.2",
     "orval": "^8.47.0",
     "typescript": "^7.0.2",

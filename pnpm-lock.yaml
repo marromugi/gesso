@@ -63,6 +63,9 @@ importers:
       '@clack/prompts':
         specifier: 1.8.1
         version: 1.8.1
+      '@gesso/api':
+        specifier: workspace:*
+        version: link:../api
       citty:
         specifier: 0.2.2
         version: 0.2.2
@@ -70,9 +73,6 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(typescript@7.0.2)
     devDependencies:
-      '@gesso/api':
-        specifier: workspace:*
-        version: link:../api
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2

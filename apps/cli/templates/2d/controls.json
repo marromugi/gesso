@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "actions": [
+    { "id": "left", "label": "左へ", "keys": ["ArrowLeft", "KeyA"] },
+    { "id": "right", "label": "右へ", "keys": ["ArrowRight", "KeyD"] },
+    { "id": "jump", "label": "ジャンプ", "keys": ["Space", "ArrowUp", "KeyW"] }
+  ]
+}

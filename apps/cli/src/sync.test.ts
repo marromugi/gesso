@@ -2,82 +2,20 @@ import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
-import type { ApiClient, PrototypeVersion, VersionFile, VersionSource } from "./api/client.ts";
 import { git } from "./git/run.ts";
 import { pull, push } from "./sync.ts";
+import { fakeApi, isolateGitSettings, prototypeId } from "./testing/fakeApi.ts";
 import { hashContent } from "./workspace.ts";
 
-const prototypeId = "p1";
-
-let gitHome: string;
+let undoGitSettings: () => Promise<void>;
 
 beforeAll(async () => {
-  // The person's own git settings (identity, signing, hooks) must not reach these repositories.
-  gitHome = await mkdtemp(join(tmpdir(), "gesso-gitconfig-"));
-  await writeFile(
-    join(gitHome, "config"),
-    "[user]\n\tname = Tester\n\temail = tester@example.com\n[init]\n\tdefaultBranch = main\n",
-  );
-  process.env.GIT_CONFIG_GLOBAL = join(gitHome, "config");
-  process.env.GIT_CONFIG_NOSYSTEM = "1";
+  undoGitSettings = await isolateGitSettings();
 });
 
 afterAll(async () => {
-  await rm(gitHome, { recursive: true, force: true });
+  await undoGitSettings();
 });
-
-/**
- * Stands in for the API: one prototype, its versions, and the content uploaded for it.
- * `uploads` counts the content sent; an unknown version is not found, as the API answers.
- */
-function fakeApi() {
-  const contents = new Map<string, Uint8Array>();
-  const versions: { files: VersionFile[]; source: VersionSource | null; note: string }[] = [];
-  const state = { uploads: 0 };
-  const client: ApiClient = {
-    me: async () => ({ name: "owner" }),
-    endSession: async () => {},
-    listPrototypes: async () => [{ id: prototypeId, name: "jump" }],
-    listVersions: async () =>
-      versions
-        .map((version, index): PrototypeVersion => ({
-          number: index + 1,
-          createdAt: "2026-11-12T00:00:00.000Z",
-          source: version.source,
-          note: version.note,
-          noteUpdatedAt: null,
-        }))
-        .toReversed(),
-    versionFiles: async (_, number) => {
-      const version = versions[number - 1];
-      if (!version) throw new Error(`no version ${number}`);
-      return version.files;
-    },
-    readContent: async (_, hash) => contents.get(hash) ?? new Uint8Array(),
-    saveContent: async (_, hash, content) => {
-      state.uploads += 1;
-      contents.set(hash, content);
-    },
-    createVersion: async (_, files, source) => {
-      const missing = files.map((file) => file.hash).filter((hash) => !contents.has(hash));
-      if (missing.length > 0) return { kind: "missingContent", hashes: [...new Set(missing)] };
-      versions.push({ files, source, note: "" });
-      return { kind: "created", number: versions.length };
-    },
-  };
-  /** Makes a version straight in the fake, as a push from elsewhere would. */
-  function addVersion(files: Record<string, string>, note = "") {
-    const entries = Object.entries(files).map(([path, text]) => {
-      const content = new TextEncoder().encode(text);
-      contents.set(hashContent(content), content);
-      return { path, hash: hashContent(content) };
-    });
-    versions.push({ files: entries, source: null, note });
-  }
-  const paths = async (number: number) =>
-    (await client.versionFiles(prototypeId, number)).map((file) => file.path);
-  return { client, state, versions, addVersion, paths };
-}
 
 let dir: string;
 
