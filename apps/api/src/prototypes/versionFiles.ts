@@ -15,9 +15,14 @@ export const hashPattern = /^[0-9a-f]{64}$/;
 
 export type VersionFile = { path: string; hash: string };
 
+/** A folder a version never holds: the CLI (apps/cli) leaves it out of what it sends. */
+const leftOutFolder = "node_modules";
+
 /**
- * Whether `path` can name a file in a version: relative, separated by `/`, and with no empty,
- * `.` or `..` segment, so it can't point outside the version when it is served or written to disk.
+ * Whether `path` can name a file in a version: relative, separated by `/`, with no empty
+ * segment, so it can't point outside the version when it is served or written to disk. No
+ * segment starts with a dot (`.env`, `.git`, `..`) or is `node_modules`: the CLI never sends
+ * those, so a version that had them couldn't be pulled and pushed back unchanged.
  */
 export function isFilePath(path: string): boolean {
   if (path.length === 0 || path.length > maxPathLength) return false;
@@ -26,7 +31,9 @@ export function isFilePath(path: string): boolean {
     const code = character.charCodeAt(0);
     if (code < 0x20 || code === 0x7f || character === "\\") return false;
   }
-  return path.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+  return path
+    .split("/")
+    .every((segment) => segment !== "" && !segment.startsWith(".") && segment !== leftOutFolder);
 }
 
 /**

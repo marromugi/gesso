@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "codegen": "TURBO_TELEMETRY_DISABLED=1 turbo run codegen",
+    "gesso": "node apps/cli/src/main.ts",
     "dev": "TURBO_TELEMETRY_DISABLED=1 turbo run dev",
     "storybook": "TURBO_TELEMETRY_DISABLED=1 turbo run storybook",
     "build": "TURBO_TELEMETRY_DISABLED=1 turbo run build",

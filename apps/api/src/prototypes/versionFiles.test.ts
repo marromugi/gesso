@@ -2,12 +2,16 @@ import { describe, expect, test } from "vitest";
 import { hashContent, isFilePath, versionFilesProblem } from "./versionFiles.ts";
 
 describe("isFilePath", () => {
-  test.each(["index.html", "src/game.js", "assets/level 1/map.json", ".well-known/x"])(
+  test.each(["index.html", "src/game.js", "assets/level 1/map.json", "a.b/c.d.js"])(
     "takes %s",
     (path) => expect(isFilePath(path)).toBe(true),
   );
 
   test.each([
+    ".env",
+    ".well-known/x",
+    "src/.secret",
+    "node_modules/lib/index.js",
     "",
     "/index.html",
     "src/",

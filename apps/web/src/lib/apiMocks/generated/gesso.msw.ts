@@ -76,6 +76,16 @@ export const getGetMeMockHandler = (overrideResponse?: Me | ((info: Parameters<H
   }, options)
 }
 
+export const getDeleteBearerSessionMockHandler = (overrideResponse?: void | ((info: Parameters<HttpResponseResolver>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.delete('*/session', async (info: Parameters<HttpResponseResolver>[0]) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+
+    return new HttpResponse(null,
+      { status: 204
+      })
+  }, options)
+}
+
 export const getListPrototypesMockHandler = (overrideResponse?: PrototypeList | ((info: Parameters<HttpResponseResolver>[0]) => Promise<PrototypeList> | PrototypeList), options?: RequestHandlerOptions) => {
   return http.get('*/prototypes', async (info: Parameters<HttpResponseResolver>[0]) => {
 
@@ -185,6 +195,7 @@ export const getCreatePrototypePlayUrlMockHandler = (overrideResponse?: PlayUrl 
 export const getGessoAPIMock = () => [
   getGetHealthMockHandler(),
   getGetMeMockHandler(),
+  getDeleteBearerSessionMockHandler(),
   getListPrototypesMockHandler(),
   getCreatePrototypeMockHandler(),
   getGetPrototypeMockHandler(),
