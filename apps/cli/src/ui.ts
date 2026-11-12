@@ -1,9 +1,6 @@
-import { resolve } from "node:path";
 import { cancel, intro, log, spinner } from "@clack/prompts";
 import { type ArgsDef, type CommandDef, type ParsedArgs, defineCommand } from "citty";
-import { type VersionSource, createApiClient } from "./api/client.ts";
 import { CliError } from "./cliError.ts";
-import { credentialsPath, requireCredentials } from "./credentials.ts";
 
 /**
  * A subcommand of `gesso`: opens with its name and, when `run` fails with `CliError`, closes with
@@ -49,40 +46,4 @@ export function progress(message: string): Progress {
   }
   log.step(message);
   return { stop: (end) => log.success(end), error: (end) => log.error(end) };
-}
-
-/** The gesso repository this CLI runs from, where `pnpm gesso` works. */
-export const gessoRepository = resolve(import.meta.dirname, "..", "..", "..");
-
-/** The API, as the person who signed in with `gesso login`. */
-export async function signedInApi() {
-  const credentials = await requireCredentials(credentialsPath());
-  return createApiClient({ ...credentials, fetch });
-}
-
-/**
- * `folder` as meant from where `pnpm gesso` was typed: pnpm runs it from the repository's root
- * and keeps the original place in `INIT_CWD`.
- */
-export function fromHere(folder: string): string {
-  return resolve(process.env.INIT_CWD ?? process.cwd(), folder);
-}
-
-/** A version's number given as `--version`; throws `CliError` for anything but 1, 2, 3… */
-export function versionNumber(text: string): number {
-  const number = Number(text);
-  if (!Number.isInteger(number) || number < 1) {
-    throw new CliError(`--version は 1 以上の整数です: ${text}`);
-  }
-  return number;
-}
-
-/** Where a version came from, as `main a1b2c3d` (the web app's version list shows the same). */
-export function sourceLabel(source: VersionSource): string {
-  return `${source.branch ?? "ブランチなし"} ${shortCommit(source.commit)}`;
-}
-
-/** The first 7 characters of a commit, as git shows it. */
-export function shortCommit(commit: string): string {
-  return commit.slice(0, 7);
 }

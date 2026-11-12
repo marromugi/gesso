@@ -24,5 +24,11 @@
   },
   "env": {
     "builtin": true
-  }
+  },
+  "overrides": [
+    {
+      "files": ["apps/api/src/db/schema.ts"],
+      "rules": { "unicorn/no-empty-file": "off" }
+    }
+  ]
 }

@@ -13,19 +13,18 @@ const testVars = {
   GITHUB_CLIENT_ID: "test",
   GITHUB_CLIENT_SECRET: "test",
   ALLOWED_GITHUB_USER_IDS: "1",
-  PLAY_ORIGIN: "http://127.0.0.1:8788",
 } satisfies Partial<Env>;
 
 /** The GitHub ID `addUser` gives a user who is allowed to sign in. */
 export const allowedGitHubId = "1";
 
 export type LocalPlatform = {
-  /** The Worker's bindings, on a fresh local D1 and R2 with every migration applied. */
+  /** The Worker's bindings, on a fresh local D1 with every migration applied. */
   env: Env;
   dispose: () => Promise<void>;
 };
 
-/** Starts a local D1 and R2 that keep nothing on disk. Works from any package's tests. */
+/** Starts a local D1 that keeps nothing on disk. Works from any package's tests. */
 export async function startLocalPlatform(): Promise<LocalPlatform> {
   const proxy = await getPlatformProxy<Env>({
     configPath: resolve(apiRoot, "wrangler.jsonc"),
@@ -47,16 +46,6 @@ export async function addUser(env: Env, id: string, gitHubId: string): Promise<v
       `insert into account (id, accountId, providerId, userId, createdAt, updatedAt) values (?, ?, 'github', ?, ?, ?)`,
     ).bind(`${id}-github`, gitHubId, id, at, at),
   ]);
-}
-
-/** Adds a prototype owned by `ownerId`. */
-export async function addPrototype(env: Env, id: string, ownerId: string): Promise<void> {
-  const at = new Date().toISOString();
-  await env.DB.prepare(
-    `insert into prototype (id, ownerId, name, createdAt, updatedAt) values (?, ?, ?, ?, ?)`,
-  )
-    .bind(id, ownerId, id, at, at)
-    .run();
 }
 
 /** Makes a session for `userId` and gives the `Cookie` header that carries it. */

@@ -51,13 +51,6 @@ export async function deleteCredentials(path: string): Promise<void> {
   await rm(path, { force: true });
 }
 
-/** The saved credentials; throws `CliError` saying to sign in when there are none. */
-export async function requireCredentials(path: string): Promise<Credentials> {
-  const credentials = await loadCredentials(path);
-  if (!credentials) throw new CliError("サインインしていません。`pnpm gesso login` してください。");
-  return credentials;
-}
-
 function isNotFound(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }

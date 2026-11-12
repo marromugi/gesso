@@ -138,7 +138,6 @@ test("someone else signed in can't approve a code the person opened", async () =
 test("a session of someone no longer allowed is signed out, even as Bearer", async () => {
   const headers = { authorization: `Bearer ${await makeSession(platform.env, "refused")}` };
   expect(await (await call("/me", { headers })).json()).toEqual({ user: null });
-  expect((await call("/prototypes", { headers })).status).toBe(401);
 });
 
 test("a Bearer session extended on read never comes back as a cookie", async () => {

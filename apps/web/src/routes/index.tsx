@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PrototypeList } from "@/components/prototype/PrototypeList";
 
-export const Route = createFileRoute("/")({ component: PrototypeList });
+export const Route = createFileRoute("/")({ component: Home });
+
+function Home() {
+  return <p>ゲームを作るための計画（ストーリー、シーン、アセット）を置く場所です。準備中です。</p>;
+}

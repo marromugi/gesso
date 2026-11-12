@@ -3,16 +3,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./openapi.json": "./openapi.json",
-    "./contentType": "./src/play/contentType.ts"
+    "./openapi.json": "./openapi.json"
   },
   "scripts": {
     "postinstall": "WRANGLER_SEND_METRICS=false wrangler types --strict-vars=false",
     "dev": "WRANGLER_SEND_METRICS=false wrangler d1 migrations apply DB --local && pnpm run \"/^dev:/\"",
     "dev:api": "WRANGLER_SEND_METRICS=false wrangler dev",
-    "dev:play": "node scripts/wait-for-api.ts && WRANGLER_SEND_METRICS=false wrangler dev -c wrangler.play.jsonc",
-    "build": "node scripts/auth-schema.ts check && node scripts/db-schema.ts && WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir dist && WRANGLER_SEND_METRICS=false wrangler deploy -c wrangler.play.jsonc --dry-run --outdir dist/play",
-    "deploy": "WRANGLER_SEND_METRICS=false wrangler d1 migrations apply DB --remote && WRANGLER_SEND_METRICS=false wrangler deploy && WRANGLER_SEND_METRICS=false wrangler deploy -c wrangler.play.jsonc",
+    "build": "node scripts/auth-schema.ts check && node scripts/db-schema.ts && WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir dist",
+    "deploy": "WRANGLER_SEND_METRICS=false wrangler d1 migrations apply DB --remote && WRANGLER_SEND_METRICS=false wrangler deploy",
     "typecheck": "WRANGLER_SEND_METRICS=false wrangler types --strict-vars=false && tsc -p . && tsc -p scripts",
     "openapi": "node scripts/write-openapi.ts",
     "test": "vitest run",

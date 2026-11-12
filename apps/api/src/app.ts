@@ -6,7 +6,6 @@ import {
   readSessionUser,
   toPublicAuthRequest,
 } from "./auth/index.ts";
-import { prototypeRoutes, versionRoutes } from "./prototypes/index.ts";
 
 const Health = z.object({ status: z.literal("ok") }).openapi("Health");
 
@@ -60,9 +59,7 @@ export const app = new OpenAPIHono<{ Bindings: Env }>()
   .openapi(getMe, async (c) => c.json({ user: await readSessionUser(c) }, 200))
   .openapi(deleteBearerSession, async (c) =>
     (await endBearerSession(c)) ? c.body(null, 204) : c.body(null, 401),
-  )
-  .route("/prototypes", prototypeRoutes)
-  .route("/prototypes", versionRoutes);
+  );
 
 app.on(
   "POST",
