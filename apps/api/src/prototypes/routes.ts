@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { type SignedInVariables, requireUser } from "../auth/index.ts";
+import { type SignedInVariables, requireUser, unauthorizedResponse } from "../auth/index.ts";
 import { getDb } from "../db/index.ts";
 import { createPrototype, listPrototypes } from "./prototypeStore.ts";
 
@@ -21,13 +21,6 @@ const NewPrototype = z
   .object({ name: z.string().trim().min(1).max(nameMaxLength) })
   .openapi("NewPrototype");
 
-const Unauthorized = z.object({ error: z.literal("unauthorized") }).openapi("Unauthorized");
-
-const unauthorized = {
-  description: "The request carries no valid session.",
-  content: { "application/json": { schema: Unauthorized } },
-} as const;
-
 const listPrototypesRoute = createRoute({
   method: "get",
   path: "/",
@@ -38,7 +31,7 @@ const listPrototypesRoute = createRoute({
       description: "The signed-in user's prototypes, newest first.",
       content: { "application/json": { schema: PrototypeList } },
     },
-    401: unauthorized,
+    401: unauthorizedResponse,
   },
 });
 
@@ -56,7 +49,7 @@ const createPrototypeRoute = createRoute({
       content: { "application/json": { schema: Prototype } },
     },
     400: { description: "The body is not a valid new prototype." },
-    401: unauthorized,
+    401: unauthorizedResponse,
   },
 });
 

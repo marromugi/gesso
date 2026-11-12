@@ -127,6 +127,163 @@
         "required": [
           "name"
         ]
+      },
+      "NotFound": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "not_found"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "HashMismatch": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "hash_mismatch"
+            ]
+          },
+          "actual": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 as lowercase hex."
+          }
+        },
+        "required": [
+          "error",
+          "actual"
+        ]
+      },
+      "PrototypeVersionList": {
+        "type": "object",
+        "properties": {
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrototypeVersion"
+            }
+          }
+        },
+        "required": [
+          "versions"
+        ]
+      },
+      "PrototypeVersion": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "createdAt"
+        ]
+      },
+      "PrototypeVersionDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PrototypeVersion"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/VersionFileEntry"
+                }
+              }
+            },
+            "required": [
+              "files"
+            ]
+          }
+        ]
+      },
+      "VersionFileEntry": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "SHA-256 as lowercase hex."
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "hash",
+          "size"
+        ]
+      },
+      "MissingContent": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "missing_content"
+            ]
+          },
+          "hashes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 as lowercase hex."
+            }
+          }
+        },
+        "required": [
+          "error",
+          "hashes"
+        ]
+      },
+      "NewPrototypeVersion": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "hash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$",
+                  "description": "SHA-256 as lowercase hex."
+                }
+              },
+              "required": [
+                "path",
+                "hash"
+              ]
+            }
+          }
+        },
+        "required": [
+          "files"
+        ]
       }
     },
     "parameters": {}
@@ -224,6 +381,324 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}/files/{hash}": {
+      "put": {
+        "operationId": "putPrototypeFileContent",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 as lowercase hex."
+            },
+            "required": true,
+            "description": "SHA-256 as lowercase hex.",
+            "name": "hash",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The content is saved under its hash (or already was)."
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "411": {
+            "description": "The request has no Content-Length."
+          },
+          "413": {
+            "description": "The content is larger than 10485760 bytes."
+          },
+          "422": {
+            "description": "The content's SHA-256 is not the hash in the path.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HashMismatch"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getPrototypeFileContent",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 as lowercase hex."
+            },
+            "required": true,
+            "description": "SHA-256 as lowercase hex.",
+            "name": "hash",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The content, as a download: it is never run on this origin.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}/versions": {
+      "get": {
+        "operationId": "listPrototypeVersions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The prototype's versions, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrototypeVersionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPrototypeVersion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPrototypeVersion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The prototype's next version, made from the files.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrototypeVersionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Some content has not been uploaded yet; upload these and send again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissingContent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prototypes/{prototypeId}/versions/{number}": {
+      "get": {
+        "operationId": "getPrototypeVersion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "prototypeId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required": true,
+            "name": "number",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The version with its files, sorted by path.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrototypeVersionDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path or body is not valid; the body lists the problems."
+          },
+          "401": {
+            "description": "The request carries no valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signed-in user has no such prototype, version, or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
                 }
               }
             }

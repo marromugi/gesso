@@ -1,3 +1,4 @@
+import { z } from "@hono/zod-openapi";
 import { and, eq } from "drizzle-orm";
 import type { Context, MiddlewareHandler } from "hono";
 import { authTables, getDb } from "../db/index.ts";
@@ -46,6 +47,14 @@ async function isStillAllowed(env: Env, userId: string): Promise<boolean> {
   if (!allowed) console.warn(JSON.stringify({ event: "session_refused", userId }));
   return allowed;
 }
+
+const Unauthorized = z.object({ error: z.literal("unauthorized") }).openapi("Unauthorized");
+
+/** The 401 that `requireUser` answers, for the `responses` of the routes behind it. */
+export const unauthorizedResponse = {
+  description: "The request carries no valid session.",
+  content: { "application/json": { schema: Unauthorized } },
+} as const;
 
 /** Lets only signed-in requests through, with the user in `c.var.user`; others get 401. */
 export const requireUser: MiddlewareHandler<{

@@ -4,4 +4,5 @@ export {
   type SignedInVariables,
   readSessionUser,
   requireUser,
+  unauthorizedResponse,
 } from "./session.ts";

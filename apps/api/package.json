@@ -6,11 +6,11 @@
     "./openapi.json": "./openapi.json"
   },
   "scripts": {
-    "postinstall": "WRANGLER_SEND_METRICS=false wrangler types",
+    "postinstall": "WRANGLER_SEND_METRICS=false wrangler types --strict-vars=false",
     "dev": "WRANGLER_SEND_METRICS=false wrangler d1 migrations apply DB --local && WRANGLER_SEND_METRICS=false wrangler dev",
     "build": "node scripts/auth-schema.ts check && node scripts/db-schema.ts && WRANGLER_SEND_METRICS=false wrangler deploy --dry-run --outdir dist",
     "deploy": "WRANGLER_SEND_METRICS=false wrangler d1 migrations apply DB --remote && WRANGLER_SEND_METRICS=false wrangler deploy",
-    "typecheck": "WRANGLER_SEND_METRICS=false wrangler types && tsc -p . && tsc -p scripts",
+    "typecheck": "WRANGLER_SEND_METRICS=false wrangler types --strict-vars=false && tsc -p . && tsc -p scripts",
     "openapi": "node scripts/write-openapi.ts",
     "test": "vitest run",
     "auth:migration": "node scripts/auth-schema.ts write",
