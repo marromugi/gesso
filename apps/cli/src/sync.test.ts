@@ -90,6 +90,16 @@ test("pull puts the newest version in an empty folder, and push sends the change
   ]);
 });
 
+test("pull makes a folder that isn't there yet", async () => {
+  const api = fakeApi();
+  api.addVersion({ "index.html": "<h1>1</h1>" });
+  const folder = join(dir, "new");
+
+  await pull(api.client, prototypeId, folder);
+
+  expect(await readFile(join(folder, "index.html"), "utf8")).toBe("<h1>1</h1>");
+});
+
 test("push with nothing changed makes no version", async () => {
   const api = fakeApi();
   api.addVersion({ "index.html": "<h1>1</h1>" });

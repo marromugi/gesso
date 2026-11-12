@@ -61,7 +61,13 @@ export async function localFiles(
 ): Promise<Map<string, { hash: string; content: Uint8Array }>> {
   const files = new Map<string, { hash: string; content: Uint8Array }>();
   async function walk(relative: string): Promise<void> {
-    const entries = await readdir(join(dir, relative), { withFileTypes: true });
+    const entries = await readdir(join(dir, relative), { withFileTypes: true }).catch(
+      (cause: unknown) => {
+        // A folder that isn't there yet holds nothing.
+        if (relative === "" && isNotFound(cause)) return [];
+        throw cause;
+      },
+    );
     for (const entry of entries) {
       if (entry.name.startsWith(".")) continue;
       const path = relative === "" ? entry.name : `${relative}/${entry.name}`;
