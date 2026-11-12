@@ -1,6 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { type SignedInVariables, requireUser, unauthorizedResponse } from "../auth/index.ts";
 import { getDb } from "../db/index.ts";
+import { notFound, notFoundResponse } from "./notFound.ts";
+import { issuePlayToken } from "./playStore.ts";
 import {
   hashPattern,
   isFilePath,
@@ -21,13 +23,6 @@ const Hash = z.string().regex(hashPattern).openapi({ description: "SHA-256 as lo
 const PrototypeParams = z.object({ prototypeId: z.string() });
 const FileParams = PrototypeParams.extend({ hash: Hash });
 const VersionParams = PrototypeParams.extend({ number: z.coerce.number().int().min(1) });
-
-const NotFound = z.object({ error: z.literal("not_found") }).openapi("NotFound");
-
-const notFoundResponse = {
-  description: "The signed-in user has no such prototype, version, or file.",
-  content: { "application/json": { schema: NotFound } },
-} as const;
 
 const badRequestResponse = {
   description: "The path or body is not valid; the body lists the problems.",
@@ -174,7 +169,29 @@ const getVersionRoute = createRoute({
   },
 });
 
-const notFound = { error: "not_found" } as const;
+const PlayUrl = z
+  .object({
+    url: z.string().openapi({ description: "The version's index.html on the play Worker." }),
+    expiresAt: z.string(),
+  })
+  .openapi("PlayUrl");
+
+const createPlayUrlRoute = createRoute({
+  method: "post",
+  path: "/{prototypeId}/versions/{number}/play",
+  operationId: "createPrototypePlayUrl",
+  middleware: [requireUser] as const,
+  request: { params: VersionParams },
+  responses: {
+    400: badRequestResponse,
+    201: {
+      description: "A URL that plays the version until `expiresAt`, for whoever opens it.",
+      content: { "application/json": { schema: PlayUrl } },
+    },
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+  },
+});
 
 /**
  * Versions of the signed-in user's prototypes and the file content they are made of, mounted at
@@ -249,4 +266,17 @@ export const versionRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedI
     const version = await getVersion(getDb(c.env.DB), c.var.user.id, prototypeId, number);
     if (!version) return c.json(notFound, 404);
     return c.json(version, 200);
+  })
+  .openapi(createPlayUrlRoute, async (c) => {
+    const { prototypeId, number } = c.req.valid("param");
+    const play = await issuePlayToken(
+      getDb(c.env.DB),
+      c.var.user.id,
+      prototypeId,
+      number,
+      new Date(),
+    );
+    if (!play) return c.json(notFound, 404);
+    const url = new URL(`/${play.token}/`, c.env.PLAY_ORIGIN).href;
+    return c.json({ url, expiresAt: play.expiresAt }, 201);
   });

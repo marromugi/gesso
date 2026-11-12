@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { type Db, tables } from "../db/index.ts";
 
 const { prototype: prototypeTable } = tables;
@@ -26,6 +26,15 @@ export async function listPrototypes(db: Db, ownerId: string): Promise<Prototype
     .from(prototypeTable)
     .where(eq(prototypeTable.ownerId, ownerId))
     .orderBy(desc(prototypeTable.createdAt), desc(prototypeTable.id));
+}
+
+/** The owner's prototype, or `null` when there is no such prototype of theirs. */
+export async function getPrototype(db: Db, ownerId: string, id: string): Promise<Prototype | null> {
+  const [found] = await db
+    .select(prototypeColumns)
+    .from(prototypeTable)
+    .where(and(eq(prototypeTable.id, id), eq(prototypeTable.ownerId, ownerId)));
+  return found ?? null;
 }
 
 /** Records a new prototype for `ownerId`. */

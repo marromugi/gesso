@@ -155,6 +155,12 @@ export interface NewPrototypeVersion {
   files: NewPrototypeVersionFilesItem[];
 }
 
+export interface PlayUrl {
+  /** The version's index.html on the play Worker. */
+  url: string;
+  expiresAt: string;
+}
+
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
@@ -537,6 +543,100 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreatePrototypeMutationOptions(options), queryClient);
     }
+
+export const getGetPrototypeUrl = (prototypeId: string,) => {
+
+
+
+
+  return `/prototypes/${prototypeId}`
+}
+
+export const getPrototype = async (prototypeId: string, options?: Parameters<typeof fetchApi>[1]): Promise<Prototype> => {
+
+  return fetchApi<Prototype>(getGetPrototypeUrl(prototypeId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPrototypeQueryKey = (prototypeId: string,) => {
+    return [
+    `/prototypes/${prototypeId}`
+    ] as const;
+    }
+
+
+export const getGetPrototypeQueryOptions = <TData = Awaited<ReturnType<typeof getPrototype>>, TError = ErrorType<Unauthorized | NotFound>>(prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototype>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPrototypeQueryKey(prototypeId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPrototype>>> = ({ signal }) => getPrototype(prototypeId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: prototypeId !== null && prototypeId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPrototype>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPrototypeQueryResult = NonNullable<Awaited<ReturnType<typeof getPrototype>>>
+export type GetPrototypeQueryError = ErrorType<Unauthorized | NotFound>
+
+
+export function useGetPrototype<TData = Awaited<ReturnType<typeof getPrototype>>, TError = ErrorType<Unauthorized | NotFound>>(
+ prototypeId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototype>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPrototype>>,
+          TError,
+          Awaited<ReturnType<typeof getPrototype>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPrototype<TData = Awaited<ReturnType<typeof getPrototype>>, TError = ErrorType<Unauthorized | NotFound>>(
+ prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototype>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPrototype>>,
+          TError,
+          Awaited<ReturnType<typeof getPrototype>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPrototype<TData = Awaited<ReturnType<typeof getPrototype>>, TError = ErrorType<Unauthorized | NotFound>>(
+ prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototype>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPrototype<TData = Awaited<ReturnType<typeof getPrototype>>, TError = ErrorType<Unauthorized | NotFound>>(
+ prototypeId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPrototype>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPrototypeQueryOptions(prototypeId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getPutPrototypeFileContentUrl = (prototypeId: string,
     hash: string,) => {
@@ -992,6 +1092,108 @@ export function useGetPrototypeVersion<TData = Awaited<ReturnType<typeof getProt
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetPrototypeVersionQueryOptions(prototypeId,number,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePrototypePlayUrlUrl = (prototypeId: string,
+    number: number,) => {
+
+
+
+
+  return `/prototypes/${prototypeId}/versions/${number}/play`
+}
+
+export const createPrototypePlayUrl = async (prototypeId: string,
+    number: number, options?: Parameters<typeof fetchApi>[1]): Promise<PlayUrl> => {
+
+  return fetchApi<PlayUrl>(getCreatePrototypePlayUrlUrl(prototypeId,number),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreatePrototypePlayUrlQueryKey = (prototypeId: string,
+    number: number,) => {
+    return [
+    'POST', `/prototypes/${prototypeId}/versions/${number}/play`
+    ] as const;
+    }
+
+
+export const getCreatePrototypePlayUrlQueryOptions = <TData = Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError = ErrorType<void | Unauthorized | NotFound>>(prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCreatePrototypePlayUrlQueryKey(prototypeId,number);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof createPrototypePlayUrl>>> = ({ signal }) => createPrototypePlayUrl(prototypeId,number, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: prototypeId !== null && prototypeId !== undefined && number !== null && number !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CreatePrototypePlayUrlQueryResult = NonNullable<Awaited<ReturnType<typeof createPrototypePlayUrl>>>
+export type CreatePrototypePlayUrlQueryError = ErrorType<void | Unauthorized | NotFound>
+
+
+export function useCreatePrototypePlayUrl<TData = Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof createPrototypePlayUrl>>,
+          TError,
+          Awaited<ReturnType<typeof createPrototypePlayUrl>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCreatePrototypePlayUrl<TData = Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof createPrototypePlayUrl>>,
+          TError,
+          Awaited<ReturnType<typeof createPrototypePlayUrl>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCreatePrototypePlayUrl<TData = Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCreatePrototypePlayUrl<TData = Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError = ErrorType<void | Unauthorized | NotFound>>(
+ prototypeId: string,
+    number: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof createPrototypePlayUrl>>, TError, TData>>, request?: SecondParameter<typeof fetchApi>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCreatePrototypePlayUrlQueryOptions(prototypeId,number,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

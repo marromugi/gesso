@@ -1,7 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { type SignedInVariables, requireUser, unauthorizedResponse } from "../auth/index.ts";
 import { getDb } from "../db/index.ts";
-import { createPrototype, listPrototypes } from "./prototypeStore.ts";
+import { notFound, notFoundResponse } from "./notFound.ts";
+import { createPrototype, getPrototype, listPrototypes } from "./prototypeStore.ts";
 
 /** The longest name a prototype takes, in characters. */
 const nameMaxLength = 100;
@@ -53,6 +54,22 @@ const createPrototypeRoute = createRoute({
   },
 });
 
+const getPrototypeRoute = createRoute({
+  method: "get",
+  path: "/{prototypeId}",
+  operationId: "getPrototype",
+  middleware: [requireUser] as const,
+  request: { params: z.object({ prototypeId: z.string() }) },
+  responses: {
+    200: {
+      description: "The prototype.",
+      content: { "application/json": { schema: Prototype } },
+    },
+    401: unauthorizedResponse,
+    404: notFoundResponse,
+  },
+});
+
 /** Prototypes of the signed-in user, mounted at `/prototypes`. */
 export const prototypeRoutes = new OpenAPIHono<{ Bindings: Env; Variables: SignedInVariables }>()
   .openapi(listPrototypesRoute, async (c) => {
@@ -67,4 +84,10 @@ export const prototypeRoutes = new OpenAPIHono<{ Bindings: Env; Variables: Signe
       new Date(),
     );
     return c.json(prototype, 201);
+  })
+  .openapi(getPrototypeRoute, async (c) => {
+    const { prototypeId } = c.req.valid("param");
+    const prototype = await getPrototype(getDb(c.env.DB), c.var.user.id, prototypeId);
+    if (!prototype) return c.json(notFound, 404);
+    return c.json(prototype, 200);
   });

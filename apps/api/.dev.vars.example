@@ -7,6 +7,9 @@ BETTER_AUTH_SECRET=
 # http://localhost:5173/api/auth/callback/github
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+# Where `pnpm dev` serves the play Worker (dev in wrangler.play.jsonc). Not localhost, which shares
+# the web dev server's cookies.
+PLAY_ORIGIN=http://127.0.0.1:8788
 # Who may sign in comes from `vars.ALLOWED_GITHUB_USER_IDS` in wrangler.jsonc. To sign in locally
 # as someone else, set your numeric GitHub user ID (`gh api user -q .id`) here, comma-separated.
 # ALLOWED_GITHUB_USER_IDS=

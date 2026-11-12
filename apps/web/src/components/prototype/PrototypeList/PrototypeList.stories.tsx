@@ -134,6 +134,10 @@ export const WithPrototypes: Story = {
         "二段ジャンプ",
       ]);
     });
+    await expect(screen.getByRole("link", { name: "二段ジャンプ" })).toHaveAttribute(
+      "href",
+      "/prototypes/p1",
+    );
   },
 };
 

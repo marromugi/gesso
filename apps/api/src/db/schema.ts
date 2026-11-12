@@ -78,3 +78,20 @@ export const prototypeVersionFile = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.versionId, table.path] })],
 );
+
+/**
+ * Lets whoever holds `token` play one version until `expiresAt`, from the play Worker
+ * (`src/play`), which has no session to check.
+ */
+export const prototypePlayToken = sqliteTable(
+  "prototypePlayToken",
+  {
+    token: text("token").primaryKey(),
+    versionId: text("versionId")
+      .notNull()
+      .references(() => prototypeVersion.id, { onDelete: "cascade" }),
+    expiresAt: text("expiresAt").notNull(),
+    createdAt: text("createdAt").notNull(),
+  },
+  (table) => [index("prototypePlayToken_expiresAt_idx").on(table.expiresAt)],
+);

@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PrototypesPrototypeIdRouteImport } from './routes/prototypes/$prototypeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrototypesPrototypeIdRoute = PrototypesPrototypeIdRouteImport.update({
+  id: '/prototypes/$prototypeId',
+  path: '/prototypes/$prototypeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/prototypes/$prototypeId': typeof PrototypesPrototypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/prototypes/$prototypeId': typeof PrototypesPrototypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/prototypes/$prototypeId': typeof PrototypesPrototypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/prototypes/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/prototypes/$prototypeId'
+  id: '__root__' | '/' | '/prototypes/$prototypeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrototypesPrototypeIdRoute: typeof PrototypesPrototypeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prototypes/$prototypeId': {
+      id: '/prototypes/$prototypeId'
+      path: '/prototypes/$prototypeId'
+      fullPath: '/prototypes/$prototypeId'
+      preLoaderRoute: typeof PrototypesPrototypeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrototypesPrototypeIdRoute: PrototypesPrototypeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
