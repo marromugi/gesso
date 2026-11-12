@@ -1,6 +1,7 @@
 import { Link, Navigate } from "@tanstack/react-router";
 import { apiFailureText } from "@/lib/ui/apiFailureText";
 import { Player } from "./Player";
+import { VersionNote } from "./VersionNote";
 import { usePrototypePlay } from "./usePrototypePlay";
 
 /** A prototype's versions, one of them playing; picking another plays that one. */
@@ -34,8 +35,11 @@ export function PrototypePlay({ prototypeId, version }: { prototypeId: string; v
         <h2 className="text-lg font-semibold">{play.name}</h2>
       </div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           <Player player={play.player} name={play.name} />
+          {play.note === null ? null : (
+            <VersionNote key={play.note.number} prototypeId={prototypeId} shown={play.note} />
+          )}
         </div>
         {play.versions.length > 0 ? (
           <nav aria-label="版" className="lg:w-56">
@@ -47,10 +51,15 @@ export function PrototypePlay({ prototypeId, version }: { prototypeId: string; v
                     params={{ prototypeId }}
                     search={{ version: item.number }}
                     aria-current={item.current ? "page" : undefined}
-                    className="flex items-baseline justify-between gap-3 rounded-container px-3 py-2 hover:bg-surface-raised aria-[current=page]:bg-accent aria-[current=page]:text-on-accent"
+                    className="flex flex-col gap-0.5 rounded-container px-3 py-2 hover:bg-surface-raised aria-[current=page]:bg-accent aria-[current=page]:text-on-accent"
                   >
-                    <span className="font-semibold">{item.label}</span>
-                    <span className="text-sm opacity-70">{item.createdAt}</span>
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="font-semibold">{item.label}</span>
+                      <span className="text-sm opacity-70">{item.createdAt}</span>
+                    </span>
+                    {item.source === null ? null : (
+                      <span className="font-mono text-xs opacity-70">{item.source}</span>
+                    )}
                   </Link>
                 </li>
               ))}

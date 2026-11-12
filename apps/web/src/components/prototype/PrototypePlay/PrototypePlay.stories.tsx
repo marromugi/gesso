@@ -8,24 +8,26 @@ import {
   getCreatePrototypePlayUrlUrl,
   getGetPrototypeUrl,
   getListPrototypeVersionsQueryKey,
+  type PrototypeVersion,
 } from "@/lib/api";
 import {
   getCreatePrototypePlayUrlMockHandler,
   getGetPrototypeMockHandler,
   getListPrototypeVersionsMockHandler,
+  getWritePrototypeVersionNoteMockHandler,
 } from "@/lib/apiMocks";
 import { PrototypePlay } from "./PrototypePlay.tsx";
 
 const prototypeId = "p1";
 
-const versions = [
-  { number: 3, createdAt: "2026-11-12T03:00:00.000Z", source: null },
-  { number: 2, createdAt: "2026-11-11T03:00:00.000Z", source: null },
-  { number: 1, createdAt: "2026-11-10T03:00:00.000Z", source: null },
+const versions: PrototypeVersion[] = [
+  { number: 3, createdAt: "2026-11-12T03:00:00.000Z", source: null, note: "", noteUpdatedAt: null },
+  { number: 2, createdAt: "2026-11-11T03:00:00.000Z", source: null, note: "", noteUpdatedAt: null },
+  { number: 1, createdAt: "2026-11-10T03:00:00.000Z", source: null, note: "", noteUpdatedAt: null },
 ];
 
 /** Stands in for the API: a prototype with `list` as its versions, each played at `#v<number>`. */
-function fakeApi(list: typeof versions) {
+function fakeApi(list: PrototypeVersion[]) {
   return [
     getGetPrototypeMockHandler({
       id: prototypeId,
@@ -194,5 +196,167 @@ export const PlayUrlFails: Story = {
       ).toBeVisible();
     });
     await expect(screen.getAllByRole("link", { name: /^版 / })).toHaveLength(3);
+  },
+};
+
+const commit = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
+
+const notedVersions = [
+  {
+    number: 2,
+    createdAt: "2026-11-12T03:00:00.000Z",
+    source: { commit, branch: "main" },
+    note: "ジャンプが重い",
+    noteUpdatedAt: "2026-11-12T04:00:00.000Z",
+  },
+  { number: 1, createdAt: "2026-11-11T03:00:00.000Z", source: null, note: "", noteUpdatedAt: null },
+];
+
+/** The notes `PUT` sent in the story being run, by version. */
+let savedNotes: { number: string; note: string }[] = [];
+
+function fakeNotes() {
+  savedNotes = [];
+  return getWritePrototypeVersionNoteMockHandler(async ({ params, request }) => {
+    const { note } = await request.json();
+    savedNotes.push({ number: params.number, note });
+    return { note, noteUpdatedAt: "2026-11-12T05:00:00.000Z" };
+  });
+}
+
+async function noteField(): Promise<HTMLElement> {
+  return screen.findByLabelText(/^版 \d+ のメモ$/);
+}
+
+/** The version's note can be added to and saved, and the list shows where the version came from. */
+export const WritesNote: Story = {
+  beforeEach({ msw }) {
+    msw.use(fakeNotes(), ...fakeApi(notedVersions));
+  },
+  async play() {
+    await expect(await noteField()).toHaveValue("ジャンプが重い");
+    await expect(screen.getByText("main a1b2c3d")).toBeVisible();
+    await expect(screen.getByText("保存済み")).toBeVisible();
+
+    await userEvent.type(await noteField(), "\n敵が速い");
+    await expect(screen.getByText("保存していない変更があります")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await waitFor(async () => {
+      await expect(screen.getByText("保存済み")).toBeVisible();
+    });
+    await expect(savedNotes).toEqual([{ number: "2", note: "ジャンプが重い\n敵が速い" }]);
+  },
+};
+
+/** Each version has its own note: a draft not saved is dropped on switching away. */
+export const NoteFollowsVersion: Story = {
+  beforeEach({ msw }) {
+    msw.use(fakeNotes(), ...fakeApi(notedVersions));
+  },
+  async play() {
+    await userEvent.type(await noteField(), "下書き");
+
+    await userEvent.click(screen.getByRole("link", { name: /^版 1/ }));
+    await waitFor(async () => {
+      await expect(screen.getByLabelText("版 1 のメモ")).toHaveValue("");
+    });
+    await userEvent.click(screen.getByRole("link", { name: /^版 2/ }));
+    await waitFor(async () => {
+      await expect(screen.getByLabelText("版 2 のメモ")).toHaveValue("ジャンプが重い");
+    });
+    await expect(savedNotes).toEqual([]);
+  },
+};
+
+export const NoteSaveFails: Story = {
+  beforeEach({ msw }) {
+    msw.use(
+      http.put("*/prototypes/:prototypeId/versions/:number/note", () =>
+        HttpResponse.json({}, { status: 500 }),
+      ),
+      ...fakeApi(notedVersions),
+    );
+  },
+  async play() {
+    await userEvent.type(await noteField(), "!");
+    await userEvent.click(screen.getByRole("button", { name: "保存する" }));
+
+    await expect(
+      await screen.findByText("保存できませんでした（API がエラーを返しました: 500）"),
+    ).toBeVisible();
+    await expect(await noteField()).toHaveValue("ジャンプが重い!");
+  },
+};
+
+/** What `elsewhere` stories fetch through, so that their `play` can fetch the list again. */
+let elsewhereClient = createQueryClient();
+/** Version 2's note as the API has it in those stories; another tab may change it. */
+let elsewhereNote = "ジャンプが重い";
+
+const withElsewhereClient: NonNullable<Story["decorators"]> = [
+  (Story) => (
+    <QueryClientProvider client={elsewhereClient}>
+      <Story />
+    </QueryClientProvider>
+  ),
+];
+
+function fakeElsewhere() {
+  elsewhereClient = createQueryClient();
+  elsewhereNote = "ジャンプが重い";
+  return [
+    getListPrototypeVersionsMockHandler(() => ({
+      versions: notedVersions.map((version) =>
+        version.number === 2 ? { ...version, note: elsewhereNote } : version,
+      ),
+    })),
+    fakeNotes(),
+    ...fakeApi(notedVersions),
+  ];
+}
+
+/** Another tab saves version 2's note; as the list is fetched again (on focus), it shows here. */
+async function savedElsewhere(note: string) {
+  elsewhereNote = note;
+  await elsewhereClient.refetchQueries({ queryKey: getListPrototypeVersionsQueryKey(prototypeId) });
+}
+
+/** Not touched here, the note follows what was saved elsewhere, and saving can't undo it. */
+export const NoteFollowsSavedElsewhere: Story = {
+  decorators: withElsewhereClient,
+  beforeEach({ msw }) {
+    msw.use(...fakeElsewhere());
+  },
+  async play() {
+    await expect(await noteField()).toHaveValue("ジャンプが重い");
+
+    await savedElsewhere("ジャンプが重い\n別のタブで書いた");
+
+    await waitFor(async () => {
+      await expect(await noteField()).toHaveValue("ジャンプが重い\n別のタブで書いた");
+    });
+    await expect(screen.getByText("保存済み")).toBeVisible();
+    await expect(screen.getByRole("button", { name: "保存する" })).toBeDisabled();
+  },
+};
+
+/** Edited here while it was saved elsewhere: it says saving would overwrite that. */
+export const NoteChangedElsewhereWhileEditing: Story = {
+  decorators: withElsewhereClient,
+  beforeEach({ msw }) {
+    msw.use(...fakeElsewhere());
+  },
+  async play() {
+    await userEvent.type(await noteField(), "!");
+
+    await savedElsewhere("別のタブで書いた");
+
+    await expect(
+      await screen.findByText(
+        "このメモはほかの場所で書き換えられました。保存すると、それを上書きします",
+      ),
+    ).toBeVisible();
+    await expect(await noteField()).toHaveValue("ジャンプが重い!");
   },
 };

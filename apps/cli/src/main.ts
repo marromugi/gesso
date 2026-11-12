@@ -8,6 +8,7 @@ const { defineCommand, runMain } = await import("citty");
 const { list } = await import("./commands/list.ts");
 const { login } = await import("./commands/login.ts");
 const { logout } = await import("./commands/logout.ts");
+const { notes } = await import("./commands/notes.ts");
 const { pull } = await import("./commands/pull.ts");
 const { push } = await import("./commands/push.ts");
 const { versions } = await import("./commands/versions.ts");
@@ -17,7 +18,7 @@ const main = defineCommand({
     name: "gesso",
     description: "プロトタイプの版を、gesso と手元の git のリポジトリの間でやりとりする",
   },
-  subCommands: { login, logout, list, versions, pull, push },
+  subCommands: { login, logout, list, versions, notes, pull, push },
 });
 
 await runMain(main);

@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { cancel, intro, log, spinner } from "@clack/prompts";
 import { type ArgsDef, type CommandDef, type ParsedArgs, defineCommand } from "citty";
-import { createApiClient } from "./api/client.ts";
+import { type VersionSource, createApiClient } from "./api/client.ts";
 import { CliError } from "./cliError.ts";
 import { credentialsPath, requireCredentials } from "./credentials.ts";
 
@@ -63,6 +63,20 @@ export async function signedInApi() {
  */
 export function fromHere(folder: string): string {
   return resolve(process.env.INIT_CWD ?? process.cwd(), folder);
+}
+
+/** A version's number given as `--version`; throws `CliError` for anything but 1, 2, 3… */
+export function versionNumber(text: string): number {
+  const number = Number(text);
+  if (!Number.isInteger(number) || number < 1) {
+    throw new CliError(`--version は 1 以上の整数です: ${text}`);
+  }
+  return number;
+}
+
+/** Where a version came from, as `main a1b2c3d` (the web app's version list shows the same). */
+export function sourceLabel(source: VersionSource): string {
+  return `${source.branch ?? "ブランチなし"} ${shortCommit(source.commit)}`;
 }
 
 /** The first 7 characters of a commit, as git shows it. */

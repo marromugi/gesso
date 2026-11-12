@@ -1,6 +1,6 @@
 import { log, outro } from "@clack/prompts";
 import { type LeftOut, push as pushVersion } from "../sync.ts";
-import { fromHere, gessoCommand, progress, shortCommit, signedInApi } from "../ui.ts";
+import { fromHere, gessoCommand, progress, signedInApi, sourceLabel } from "../ui.ts";
 
 const reasons: Record<LeftOut["reason"], string> = {
   dot: "ドットで始まるもの・node_modules",
@@ -37,9 +37,8 @@ export const push = gessoCommand({
       running.stop(`版 ${result.version} と同じなので、版は作りませんでした`);
     } else {
       running.stop(`版 ${result.version} を作りました`);
-      const { branch, commit } = result.source;
       log.message([
-        `${branch ?? "(ブランチなし)"} ${shortCommit(commit)} から`,
+        `${sourceLabel(result.source)} から`,
         `${result.files} ファイル（新しく上げた中身 ${result.uploaded}）`,
       ]);
     }

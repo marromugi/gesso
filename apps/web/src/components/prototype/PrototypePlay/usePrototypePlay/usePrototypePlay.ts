@@ -12,13 +12,26 @@ import {
 const unauthorizedStatus = 401;
 const notFoundStatus = 404;
 
+/** How much of a commit's name is shown, as git shows it. */
+const shortCommitLength = 7;
+
 const createdAtFormat = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
 /** One version in the list to switch between. */
-export type VersionItem = { number: number; label: string; createdAt: string; current: boolean };
+export type VersionItem = {
+  number: number;
+  label: string;
+  createdAt: string;
+  /** Where it came from, as `main a1b2c3d`; `null` when it wasn't sent from git. */
+  source: string | null;
+  current: boolean;
+};
+
+/** The note of the version being played, as saved. */
+export type ShownNote = { number: number; note: string };
 
 /**
  * What the player area shows.
@@ -39,7 +52,14 @@ export type PrototypePlayState =
   | { state: "notFound" }
   | { state: "failed"; failure: ApiFailure }
   | { state: "openNewest"; number: number }
-  | { state: "ready"; name: string; versions: VersionItem[]; player: PlayerState };
+  | {
+      state: "ready";
+      name: string;
+      versions: VersionItem[];
+      player: PlayerState;
+      /** `null` when no version is being played, or the one asked for doesn't exist. */
+      note: ShownNote | null;
+    };
 
 /**
  * The prototype `prototypeId` with its versions, playing version `version`. Without one, it says
@@ -88,7 +108,13 @@ export function usePrototypePlay(prototypeId: string, version?: number): Prototy
     name: prototype.data.name,
     versions: list.map((item) => versionItem(item, version)),
     player: playerState(version, exists, play),
+    note: shownNote(list, version),
   };
+}
+
+function shownNote(list: readonly PrototypeVersion[], shown: number | undefined): ShownNote | null {
+  const item = list.find((candidate) => candidate.number === shown);
+  return item === undefined ? null : { number: item.number, note: item.note };
 }
 
 function versionItem(item: PrototypeVersion, shown: number | undefined): VersionItem {
@@ -96,6 +122,10 @@ function versionItem(item: PrototypeVersion, shown: number | undefined): Version
     number: item.number,
     label: `版 ${item.number}`,
     createdAt: createdAtFormat.format(new Date(item.createdAt)),
+    source:
+      item.source === null
+        ? null
+        : `${item.source.branch ?? "ブランチなし"} ${item.source.commit.slice(0, shortCommitLength)}`,
     current: item.number === shown,
   };
 }

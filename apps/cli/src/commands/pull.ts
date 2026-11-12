@@ -1,7 +1,6 @@
 import { log, outro } from "@clack/prompts";
-import { CliError } from "../cliError.ts";
 import { pull as pullVersion } from "../sync.ts";
-import { fromHere, gessoCommand, progress, signedInApi } from "../ui.ts";
+import { fromHere, gessoCommand, progress, signedInApi, versionNumber } from "../ui.ts";
 
 export const pull = gessoCommand({
   name: "pull",
@@ -29,6 +28,8 @@ export const pull = gessoCommand({
 
     if (result.kind === "upToDate") {
       running.stop(`版 ${result.version} は取り込み済みです`);
+      // Its note may have been written since it was pulled.
+      showNote(result.version, result.note);
       outro("変わりなし");
       return;
     }
@@ -40,6 +41,7 @@ export const pull = gessoCommand({
     }
     running.stop(`版 ${result.version} を取ってきました（${result.files} ファイル）`);
     if (result.initialized) log.info(`${dir} を git のリポジトリにしました`);
+    showNote(result.version, result.note);
     if (result.merge.kind === "conflict") {
       log.warn(
         [
@@ -61,10 +63,7 @@ export const pull = gessoCommand({
   },
 });
 
-function versionNumber(text: string): number {
-  const number = Number(text);
-  if (!Number.isInteger(number) || number < 1) {
-    throw new CliError(`--version は 1 以上の整数です: ${text}`);
-  }
-  return number;
+/** The version's note, for the next change to start from; nothing when it has none. */
+function showNote(version: number, note: string): void {
+  if (note !== "") log.info(`版 ${version} のメモ:\n${note}`);
 }
