@@ -1,5 +1,6 @@
 import { getDb } from "../db/index.ts";
 import { readPlayFile } from "../prototypes/playStore.ts";
+import { parseByteRange, rangeBounds } from "./byteRange.ts";
 import { contentTypeOf } from "./contentType.ts";
 import { parsePlayRequest } from "./playRequest.ts";
 
@@ -24,20 +25,29 @@ export async function servePlay(request: Request, env: PlayEnv): Promise<Respons
     env.PROTOTYPE_FILES,
     parsed.token,
     parsed.path,
+    // Safari plays audio and video only from a server that answers ranges.
+    parseByteRange(request.headers.get("range")),
     new Date(),
   );
   if (!file) return notFound();
   if (request.method === "HEAD") await file.body.cancel();
-  return new Response(request.method === "HEAD" ? null : file.body, {
-    headers: {
-      "content-type": contentTypeOf(parsed.path),
-      "content-length": String(file.size),
-      "x-content-type-options": "nosniff",
-      // The token is in every URL; a page the prototype links to must not learn it.
-      "referrer-policy": "no-referrer",
-      "cache-control": "private, no-cache",
-    },
+  const headers = new Headers({
+    "content-type": contentTypeOf(parsed.path),
+    "content-length": String(file.size),
+    "accept-ranges": "bytes",
+    "x-content-type-options": "nosniff",
+    // The token is in every URL; a page the prototype links to must not learn it.
+    "referrer-policy": "no-referrer",
+    "cache-control": "private, no-cache",
   });
+  let status = 200;
+  if (file.range !== null) {
+    const { start, end } = rangeBounds(file.range, file.size);
+    status = 206;
+    headers.set("content-range", `bytes ${start}-${end}/${file.size}`);
+    headers.set("content-length", String(end - start + 1));
+  }
+  return new Response(request.method === "HEAD" ? null : file.body, { status, headers });
 }
 
 function notFound(): Response {

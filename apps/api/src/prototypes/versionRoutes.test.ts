@@ -167,8 +167,30 @@ test("a play URL opens the version on the play Worker, only for its owner", asyn
 
   const missing = await request("/prototypes/mine/versions/999/play", { method: "POST" });
   expect(missing.status).toBe(404);
-  const theirs = await request("/prototypes/theirs/versions/1/play", { method: "POST" });
-  expect(theirs.status).toBe(404);
+});
+
+test("someone else's version can't be played", async () => {
+  const otherCookie = await signIn(platform.env, "other");
+  const hash = await hashContent(await new Blob(["their page"]).arrayBuffer());
+  await request(`/prototypes/theirs/files/${hash}`, {
+    method: "PUT",
+    headers: { "content-type": "application/octet-stream", cookie: otherCookie },
+    body: "their page",
+  });
+  const created = await request("/prototypes/theirs/versions", {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: otherCookie },
+    body: JSON.stringify({ files: [{ path: "index.html", hash }] }),
+  });
+  const { number }: { number: number } = await created.json();
+  const own = await request(`/prototypes/theirs/versions/${number}/play`, {
+    method: "POST",
+    headers: { cookie: otherCookie },
+  });
+  expect(own.status).toBe(201);
+
+  const response = await request(`/prototypes/theirs/versions/${number}/play`, { method: "POST" });
+  expect(response.status).toBe(404);
 });
 
 test("a prototype is read by its owner alone", async () => {

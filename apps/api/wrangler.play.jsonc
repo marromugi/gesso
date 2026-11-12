@@ -10,7 +10,10 @@
   "send_metrics": false,
   "workers_dev": true,
   "preview_urls": false,
+  // Locally on 127.0.0.1, not localhost: cookies don't tell ports apart, so on localhost the web
+  // dev server's session cookie would reach prototypes.
   "dev": {
+    "ip": "127.0.0.1",
     "port": 8788,
   },
   "d1_databases": [

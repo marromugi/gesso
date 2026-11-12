@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { type Db, getDb } from "../db/index.ts";
-import { issuePlayToken, playTokenLifetimeMs } from "../prototypes/playStore.ts";
+import { issuePlayToken } from "../prototypes/playStore.ts";
 import { hashContent } from "../prototypes/versionFiles.ts";
 import { createVersion, saveFileContent } from "../prototypes/versionStore.ts";
 import {
@@ -29,7 +29,11 @@ beforeAll(async () => {
     "index.html": "<script type=module src=src/game.js></script>",
     "src/game.js": "jump()",
   });
-  await makeVersion({ "index.html": "<h1>v2</h1>", "levels/one.json": "{}" });
+  await makeVersion({
+    "index.html": "<h1>v2</h1>",
+    "levels/index.html": "<h1>levels</h1>",
+    "levels/one.tmx": "<map/>",
+  });
   token = await tokenFor(1, new Date());
 });
 
@@ -55,14 +59,15 @@ async function tokenFor(number: number, now: Date): Promise<string> {
   return play.token;
 }
 
-function get(path: string, method = "GET"): Promise<Response> {
-  return servePlay(new Request(`${playOrigin}${path}`, { method }), platform.env);
+function get(path: string, init: RequestInit = {}): Promise<Response> {
+  return servePlay(new Request(`${playOrigin}${path}`, init), platform.env);
 }
 
 test("a token plays its version's files, each with the type a browser runs it as", async () => {
   const page = await get(`/${token}/`);
   expect(page.status).toBe(200);
   expect(page.headers.get("content-type")).toBe("text/html; charset=utf-8");
+  expect(page.headers.get("x-content-type-options")).toBe("nosniff");
   expect(page.headers.get("referrer-policy")).toBe("no-referrer");
   expect(await page.text()).toBe("<script type=module src=src/game.js></script>");
 
@@ -72,6 +77,13 @@ test("a token plays its version's files, each with the type a browser runs it as
   expect(await script.text()).toBe("jump()");
 });
 
+test("a directory plays its index.html, and a file of an unknown kind is plain bytes", async () => {
+  const second = await tokenFor(2, new Date());
+  expect(await (await get(`/${second}/levels/`)).text()).toBe("<h1>levels</h1>");
+  const map = await get(`/${second}/levels/one.tmx`);
+  expect(map.headers.get("content-type")).toBe("application/octet-stream");
+});
+
 test("the token alone is sent to its page, so relative URLs stay inside the version", async () => {
   const response = await get(`/${token}`);
   expect(response.status).toBe(308);
@@ -79,16 +91,30 @@ test("the token alone is sent to its page, so relative URLs stay inside the vers
 });
 
 test("a token reaches only its own version's files", async () => {
-  expect((await get(`/${token}/levels/one.json`)).status).toBe(404);
+  expect((await get(`/${token}/levels/index.html`)).status).toBe(404);
   const second = await tokenFor(2, new Date());
-  expect(await (await get(`/${second}/levels/one.json`)).text()).toBe("{}");
+  expect(await (await get(`/${second}/levels/one.tmx`)).text()).toBe("<map/>");
   expect((await get(`/${second}/src/game.js`)).status).toBe(404);
 });
 
+test("a token plays for 12 hours from when it is made", async () => {
+  const play = await issuePlayToken(db, owner, "game", 1, new Date("2026-11-12T00:00:00.000Z"));
+  expect(play?.expiresAt).toBe("2026-11-12T12:00:00.000Z");
+});
+
 test("an expired or unknown token plays nothing", async () => {
-  const expired = await tokenFor(1, new Date(Date.now() - playTokenLifetimeMs - 1000));
+  const expired = await tokenFor(1, new Date("2026-01-01T00:00:00.000Z"));
   expect((await get(`/${expired}/`)).status).toBe(404);
   expect((await get("/not-a-token/")).status).toBe(404);
+});
+
+test("expired tokens are deleted when a new one is made", async () => {
+  const expired = await tokenFor(1, new Date("2026-01-01T00:00:00.000Z"));
+  await tokenFor(1, new Date());
+  const row = await platform.env.DB.prepare(`select token from prototypePlayToken where token = ?`)
+    .bind(expired)
+    .first();
+  expect(row).toBeNull();
 });
 
 test.each([
@@ -98,9 +124,31 @@ test.each([
   expect((await get(rest === "" ? "/" : `/${token}${rest}`)).status).toBe(404);
 });
 
+test.each([
+  ["bytes=1-3", "ump", "bytes 1-3/6"],
+  ["bytes=4-", "()", "bytes 4-5/6"],
+  ["bytes=-2", "()", "bytes 4-5/6"],
+  ["bytes=2-99", "mp()", "bytes 2-5/6"],
+])("a range %s gets just those bytes, as audio and video ask for", async (range, body, sent) => {
+  const response = await get(`/${token}/src/game.js`, { headers: { range } });
+  expect(response.status).toBe(206);
+  expect(response.headers.get("content-range")).toBe(sent);
+  expect(response.headers.get("content-length")).toBe(String(body.length));
+  expect(await response.text()).toBe(body);
+});
+
+test.each(["bytes=6-", "bytes=0-1,3-4", "items=0-1"])(
+  "a range %s that can't be served gets the whole file",
+  async (range) => {
+    const response = await get(`/${token}/src/game.js`, { headers: { range } });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("jump()");
+  },
+);
+
 test("only reading is allowed", async () => {
-  expect((await get(`/${token}/`, "POST")).status).toBe(405);
-  const head = await get(`/${token}/src/game.js`, "HEAD");
+  expect((await get(`/${token}/`, { method: "POST" })).status).toBe(405);
+  const head = await get(`/${token}/src/game.js`, { method: "HEAD" });
   expect(head.status).toBe(200);
   expect(head.headers.get("content-length")).toBe("6");
 });

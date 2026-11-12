@@ -38,23 +38,27 @@ export type PrototypePlayState =
   | { state: "signedOut" }
   | { state: "notFound" }
   | { state: "failed"; failure: ApiFailure }
+  | { state: "openNewest"; number: number }
   | { state: "ready"; name: string; versions: VersionItem[]; player: PlayerState };
 
 /**
- * The prototype `prototypeId` with its versions, playing version `version` or, without one, the
- * newest. A play URL is fetched once per version shown and kept while the page is open: a new
- * one would reload the game.
+ * The prototype `prototypeId` with its versions, playing version `version`. Without one, it says
+ * to open the newest (`openNewest`), so that a version sent later doesn't replace the game being
+ * played. A play URL is fetched again only after it expires and only when its version is shown
+ * anew: a new URL reloads the game.
  */
 export function usePrototypePlay(prototypeId: string, version?: number): PrototypePlayState {
   const prototype = useGetPrototype(prototypeId);
   const versions = useListPrototypeVersions(prototypeId);
   const list = versions.data?.versions ?? [];
-  const shown = version ?? list[0]?.number;
-  const exists = list.some((item) => item.number === shown);
-  const play = useCreatePrototypePlayUrl(prototypeId, shown ?? 0, {
+  const exists = list.some((item) => item.number === version);
+  const play = useCreatePrototypePlayUrl(prototypeId, version ?? 0, {
     query: {
       enabled: exists,
-      staleTime: Number.POSITIVE_INFINITY,
+      staleTime: (query) => {
+        const expiresAt = query.state.data?.expiresAt;
+        return expiresAt === undefined ? 0 : Math.max(Date.parse(expiresAt) - Date.now(), 0);
+      },
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
     },
@@ -74,11 +78,16 @@ export function usePrototypePlay(prototypeId: string, version?: number): Prototy
     return { state: "failed", failure };
   }
 
+  const [newest] = list;
+  if (version === undefined && newest !== undefined) {
+    return { state: "openNewest", number: newest.number };
+  }
+
   return {
     state: "ready",
     name: prototype.data.name,
-    versions: list.map((item) => versionItem(item, shown)),
-    player: playerState(shown, exists, play),
+    versions: list.map((item) => versionItem(item, version)),
+    player: playerState(version, exists, play),
   };
 }
 

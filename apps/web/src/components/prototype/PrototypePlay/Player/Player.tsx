@@ -13,7 +13,7 @@ export function Player({ player, name }: { player: PlayerState; name: string }) 
         key={player.url}
         src={player.url}
         title={`${name} 版 ${player.number}`}
-        className="aspect-video w-full rounded-container border border-edge bg-black"
+        className="aspect-video w-full rounded-container border border-edge bg-white"
         // The play origin is not gesso's, so keeping its own origin gives the prototype nothing
         // of ours, and it needs one for localStorage and module scripts. The sandbox still keeps
         // it from navigating this page.

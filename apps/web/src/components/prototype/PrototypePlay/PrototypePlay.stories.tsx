@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { HttpResponse, http } from "msw";
-import { expect, screen, waitFor } from "storybook/test";
-import { getCreatePrototypePlayUrlUrl, getGetPrototypeUrl } from "@/lib/api";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
+import { expect, screen, userEvent, waitFor } from "storybook/test";
+import {
+  createQueryClient,
+  getCreatePrototypePlayUrlUrl,
+  getGetPrototypeUrl,
+  getListPrototypeVersionsQueryKey,
+} from "@/lib/api";
 import {
   getCreatePrototypePlayUrlMockHandler,
   getGetPrototypeMockHandler,
@@ -38,8 +45,18 @@ async function player(): Promise<HTMLElement> {
   return screen.findByTitle(/^二段ジャンプ 版 \d+$/);
 }
 
+/**
+ * Plays the version in the story router's `?version`, as the route does, so that following a
+ * link switches the version. Before any navigation, `version` is the one the story starts on.
+ */
+function RoutedPrototypePlay(props: { prototypeId: string; version?: number }) {
+  const searched = useRouterState({ select: (state) => state.location.search.version });
+  return <PrototypePlay prototypeId={props.prototypeId} version={searched ?? props.version} />;
+}
+
 const meta = {
   component: PrototypePlay,
+  render: (args) => <RoutedPrototypePlay {...args} />,
   args: { prototypeId },
 } satisfies Meta<typeof PrototypePlay>;
 
@@ -47,8 +64,8 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Without a version asked for, the newest plays, and each version links to playing it. */
-export const PlaysNewest: Story = {
+/** Without a version asked for, the newest opens, and picking another switches to it. */
+export const PlaysNewestThenSwitches: Story = {
   beforeEach({ msw }) {
     msw.use(...fakeApi(versions));
   },
@@ -60,7 +77,52 @@ export const PlaysNewest: Story = {
       null,
       null,
     ]);
-    await expect(links[1]).toHaveAttribute("href", `/prototypes/${prototypeId}?version=2`);
+
+    await userEvent.click(screen.getByRole("link", { name: /^版 2/ }));
+
+    await waitFor(async () => {
+      await expect(await player()).toHaveAttribute("src", "about:blank#v2");
+    });
+    await expect(screen.getByRole("link", { name: /^版 2/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  },
+};
+
+/** What `NewVersionKeepsGame` fetches through, so that its `play` can fetch again. */
+let newVersionClient = createQueryClient();
+/** The versions the fake API lists in `NewVersionKeepsGame`. */
+let newVersionList = versions.slice(1);
+
+/** A version sent while one is playing joins the list, and the game keeps playing. */
+export const NewVersionKeepsGame: Story = {
+  decorators: [
+    (Story) => (
+      <QueryClientProvider client={newVersionClient}>
+        <Story />
+      </QueryClientProvider>
+    ),
+  ],
+  beforeEach({ msw }) {
+    newVersionClient = createQueryClient();
+    newVersionList = versions.slice(1);
+    msw.use(
+      getListPrototypeVersionsMockHandler(() => ({ versions: newVersionList })),
+      ...fakeApi(versions),
+    );
+  },
+  async play() {
+    await expect(await player()).toHaveAttribute("src", "about:blank#v2");
+
+    newVersionList = versions;
+    // As when the tab comes back into focus: the versions are fetched again.
+    await newVersionClient.refetchQueries({
+      queryKey: getListPrototypeVersionsQueryKey(prototypeId),
+    });
+
+    await expect(await screen.findByRole("link", { name: /^版 3/ })).toBeVisible();
+    await expect(await player()).toHaveAttribute("src", "about:blank#v2");
   },
 };
 

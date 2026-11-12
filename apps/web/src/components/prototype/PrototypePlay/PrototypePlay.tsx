@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, Navigate } from "@tanstack/react-router";
 import { apiFailureText } from "@/lib/ui/apiFailureText";
 import { Player } from "./Player";
 import { usePrototypePlay } from "./usePrototypePlay";
@@ -12,6 +12,16 @@ export function PrototypePlay({ prototypeId, version }: { prototypeId: string; v
   if (play.state === "notFound") return <p>このプロトタイプは見つかりません。</p>;
   if (play.state === "failed") {
     return <output>プロトタイプを読み込めません（{apiFailureText(play.failure)}）</output>;
+  }
+  if (play.state === "openNewest") {
+    return (
+      <Navigate
+        to="/prototypes/$prototypeId"
+        params={{ prototypeId }}
+        search={{ version: play.number }}
+        replace
+      />
+    );
   }
 
   return (
